@@ -107,6 +107,96 @@ app.post('/api/user/update-profile', async (req, res) => {
 });
 
 // ==========================================
+// FRIENDS & MESSAGING API
+// ==========================================
+app.get('/api/friends/list', async (req, res) => {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ error: "Email required" });
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const friends = await prisma.friend.findMany({
+            where: { OR: [{ userId: user.id }, { friendId: user.id }] },
+            include: { user: true, friend: true }
+        });
+        res.json({ success: true, friends, userId: user.id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to load friends" });
+    }
+});
+
+app.post('/api/friends/add', async (req, res) => {
+    const { email, friendHunterName } = req.body;
+    try {
+        const sender = await prisma.user.findUnique({ where: { email } });
+        const receiver = await prisma.user.findUnique({ where: { hunterName: friendHunterName } });
+        if (!sender || !receiver) return res.status(404).json({ error: "Hunter not found" });
+        if (sender.id === receiver.id) return res.status(400).json({ error: "Cannot add yourself" });
+
+        // Check if exists
+        const existing = await prisma.friend.findFirst({
+            where: {
+                OR: [
+                    { userId: sender.id, friendId: receiver.id },
+                    { userId: receiver.id, friendId: sender.id }
+                ]
+            }
+        });
+
+        if (existing) {
+            if (existing.status === 'PENDING' && existing.friendId === sender.id) {
+                // Accept request
+                await prisma.friend.update({ where: { id: existing.id }, data: { status: 'ACCEPTED' } });
+                return res.json({ success: true, message: "Friend request accepted!" });
+            }
+            return res.status(400).json({ error: "Friendship already exists or pending." });
+        }
+
+        await prisma.friend.create({
+            data: { userId: sender.id, friendId: receiver.id, status: 'PENDING' }
+        });
+        res.json({ success: true, message: "Friend request sent!" });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to add friend" });
+    }
+});
+
+app.get('/api/messages/list', async (req, res) => {
+    const { email, friendId } = req.query;
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        const messages = await prisma.directMessage.findMany({
+            where: {
+                OR: [
+                    { senderId: user.id, receiverId: friendId },
+                    { senderId: friendId, receiverId: user.id }
+                ]
+            },
+            orderBy: { createdAt: 'asc' },
+            take: 50
+        });
+        res.json({ success: true, messages });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to load messages" });
+    }
+});
+
+app.post('/api/messages/send', async (req, res) => {
+    const { email, receiverId, content } = req.body;
+    try {
+        const sender = await prisma.user.findUnique({ where: { email } });
+        const msg = await prisma.directMessage.create({
+            data: { senderId: sender.id, receiverId, content }
+        });
+        res.json({ success: true, msg });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to send message" });
+    }
+});
+
+// ==========================================
 // DISCORD BOT & RATE-LIMIT QUEUE
 // ==========================================
 const discordQueue = [];

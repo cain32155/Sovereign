@@ -218,6 +218,7 @@ document.getElementById("auth-verify-otp-btn").addEventListener("click", async (
         
         if (res.ok && data.token) {
             localStorage.setItem("arise_token", data.token);
+            localStorage.setItem("arise_current_user", email);
             
             // Setup User Session
             loadState(email);
@@ -432,76 +433,129 @@ function syncDashboard() {
     renderQuests();
     if (typeof renderBuffs === 'function') renderBuffs();
     if (typeof renderShop === 'function') renderShop();
-    if (typeof renderShadows === 'function') renderShadows();
-    if (typeof renderNetworkTab === 'function') renderNetworkTab();
-    applyAura();
-    updateDailyTimer();
+    if (typeof renderHomepageElements === 'function') renderHomepageElements();
     
     document.getElementById("mana-crystals-count").textContent = state.inventory.manaCrystals;
 }
 
-function renderNetworkTab() {
-    const hubContainer = document.getElementById("hub-content");
-    if (!hubContainer) return;
+let currentChatFriendId = null;
+let chatPollInterval = null;
+
+async function renderNetworkTab() {
+    refreshFriendsList();
+}
+
+async function refreshFriendsList() {
+    const listContainer = document.getElementById("friends-list-container");
+    if (!listContainer) return;
     
-    const activeTab = document.querySelector("#hub-tabs .active")?.getAttribute("data-hub") || "arbitration";
-    
-    if (activeTab === "arbitration") {
-        hubContainer.innerHTML = `<div class="text-center text-muted mt-4"><span class="pulse">SYNCING WITH ARBITRATION QUEUE...</span></div>`;
+    const email = localStorage.getItem("arise_current_user");
+    if (!email) return;
+
+    try {
+        const res = await fetch(`https://sovereign-6irh.onrender.com/api/friends/list?email=${email}`);
+        const data = await res.json();
         
-        const reviewerId = encodeURIComponent(state.player.name || "TestUser");
-        fetch(`https://sovereign-6irh.onrender.com/api/reviews/queue?reviewerId=${reviewerId}`)
-            .then(res => {
-                if(!res.ok) throw new Error("Server Response Not OK");
-                return res.json();
-            })
-            .then(data => {
-                if(!data.queue || data.queue.length === 0) {
-                    hubContainer.innerHTML = `<div class="text-center text-muted mt-4"><i class="fas fa-check-circle text-gold" style="font-size: 2rem;"></i><br><br>Queue is clear. No pending verifications.</div>`;
-                    return;
-                }
-                const sub = data.queue[0];
-                hubContainer.innerHTML = `
-                    <div class="arbitration-card" id="arbi-card-${sub.id}">
-                        <h4 class="text-gold">VERIFICATION REQUIRED</h4>
-                        <p class="text-muted" style="font-size:0.8rem">Subject: ${sub.userId}. Quest: ${sub.questTitle}</p>
-                        <img src="${sub.imageUrl}" class="arbi-img" alt="Proof Image">
-                        <div class="arbi-actions mt-2">
-                            <button class="btn-glow-blue btn-sm" onclick="submitArbitrationVote('${sub.id}', 'APPROVED')"><i class="fas fa-check"></i> APPROVE</button>
-                            <button class="btn-outline-red btn-sm" onclick="submitArbitrationVote('${sub.id}', 'REJECTED')"><i class="fas fa-times"></i> REJECT</button>
+        if (data.success) {
+            listContainer.innerHTML = "";
+            if (data.friends.length === 0) {
+                listContainer.innerHTML = `<div class="text-muted text-center mt-4" style="font-size: 0.8rem;">No active connections.</div>`;
+                return;
+            }
+            
+            data.friends.forEach(f => {
+                const isSender = f.userId === data.userId;
+                const friendUser = isSender ? f.friend : f.user;
+                
+                const div = document.createElement("div");
+                div.style = "display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 4px; border-left: 2px solid var(--color-primary); margin-bottom: 5px; cursor: pointer;";
+                div.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${friendUser.profileUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${friendUser.hunterName}`}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+                        <div>
+                            <div style="font-weight: bold; font-size: 0.9rem; color: var(--color-secondary);">${friendUser.hunterName}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">${f.status === 'PENDING' ? 'Pending Request' : friendUser.rank + '-Rank'}</div>
                         </div>
                     </div>
                 `;
-            })
-            .catch(err => {
-                hubContainer.innerHTML = `<div class="text-center text-red mt-4">SYSTEM ERROR: Failed to sync with Arbitration Server.</div>`;
+                
+                if (f.status === 'ACCEPTED') {
+                    div.onclick = () => openChat(friendUser.id, friendUser.hunterName);
+                } else if (!isSender) {
+                    const btn = document.createElement("button");
+                    btn.className = "btn-glow-blue btn-xs";
+                    btn.innerText = "ACCEPT";
+                    btn.onclick = (e) => { e.stopPropagation(); addFriend(friendUser.hunterName); };
+                    div.appendChild(btn);
+                }
+                
+                listContainer.appendChild(div);
             });
-    } else if (activeTab === "armory") {
-        hubContainer.innerHTML = `
-            <h4 class="text-purple mb-2">GUILD ARMORY</h4>
-            <div class="armory-item">
-                <div>
-                    <span class="text-gold" style="display:block; font-weight:bold;">XP Blessing</span>
-                    <span class="text-muted" style="font-size:0.8rem;">+10% EXP for all members (24h)</span>
-                </div>
-                <button class="btn-glow-purple btn-xs" onclick="alert('Insufficient Mana Crystals')">500 MANA</button>
-            </div>
-            <div class="armory-item">
-                <div>
-                    <span class="text-red" style="display:block; font-weight:bold;">Strength Aura</span>
-                    <span class="text-muted" style="font-size:0.8rem;">+5 STR for all members (12h)</span>
-                </div>
-                <button class="btn-glow-purple btn-xs" onclick="alert('Insufficient Mana Crystals')">300 MANA</button>
-            </div>
-        `;
-    } else if (activeTab === "radar") {
-        hubContainer.innerHTML = `
-            <div class="radar-log highlight">[SYSTEM] SUNG_JIN_WOO has cleared an S-Rank Dungeon!</div>
-            <div class="radar-log">[SYSTEM] IRON_BODY reached Level 45.</div>
-            <div class="radar-log">[SYSTEM] NEO_ARCHITECT forged a new item: Keyboard of Haste.</div>
-            <div class="radar-log highlight">[SYSTEM] A Red Gate has appeared in the West sector.</div>
-            <div class="radar-log">[SYSTEM] USER_099 failed a Daily Quest and received a penalty.</div>
-        `;
+        }
+    } catch (e) {
+        listContainer.innerHTML = `<div class="text-red text-center mt-4">Failed to connect to Network.</div>`;
+    }
+}
+
+async function addFriend(hunterName) {
+    const email = localStorage.getItem("arise_current_user");
+    try {
+        const res = await fetch("https://sovereign-6irh.onrender.com/api/friends/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, friendHunterName: hunterName })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message);
+            refreshFriendsList();
+        } else {
+            showToast(data.error, "error");
+        }
+    } catch (e) {
+        showToast("Network Error", "error");
+    }
+}
+
+function openChat(friendId, friendName) {
+    currentChatFriendId = friendId;
+    document.getElementById("chat-active-friend").innerHTML = `<i class="fas fa-comment-dots"></i> ${friendName}`;
+    document.getElementById("chat-input-field").disabled = false;
+    document.getElementById("btn-send-message").disabled = false;
+    
+    if (chatPollInterval) clearInterval(chatPollInterval);
+    loadChatMessages();
+    chatPollInterval = setInterval(loadChatMessages, 5000);
+}
+
+async function loadChatMessages() {
+    if (!currentChatFriendId) return;
+    const email = localStorage.getItem("arise_current_user");
+    try {
+        const res = await fetch(`https://sovereign-6irh.onrender.com/api/messages/list?email=${email}&friendId=${currentChatFriendId}`);
+        const data = await res.json();
+        if (data.success) {
+            const container = document.getElementById("chat-messages-container");
+            const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 10;
+            
+            container.innerHTML = "";
+            if (data.messages.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 100px;">Channel secured. Begin transmission.</div>`;
+                return;
+            }
+            
+            data.messages.forEach(m => {
+                const isSelf = m.senderId !== currentChatFriendId;
+                const div = document.createElement("div");
+                div.style = `max-width: 80%; padding: 10px; border-radius: 8px; font-size: 0.85rem; ${isSelf ? 'align-self: flex-end; background: rgba(0, 229, 255, 0.1); border-right: 2px solid var(--color-primary);' : 'align-self: flex-start; background: rgba(255, 255, 255, 0.05); border-left: 2px solid var(--text-muted);'}`;
+                div.innerText = m.content;
+                container.appendChild(div);
+            });
+            
+            if (isScrolledToBottom) container.scrollTop = container.scrollHeight;
+        }
+    } catch (e) {
+        console.error(e);
     }
 }
 
@@ -1229,3 +1283,69 @@ document.getElementById("btn-save-settings")?.addEventListener("click", async ()
     
     document.getElementById("btn-save-settings").innerText = "SAVE PROFILE UPDATES";
 });
+
+// ==========================================
+// FRIENDS & MESSAGING UI LOGIC
+// ==========================================
+document.getElementById("btn-add-friend")?.addEventListener("click", () => {
+    const friendName = document.getElementById("friend-search-input").value.trim();
+    if (!friendName) return showToast("Enter a Hunter Name.", "error");
+    addFriend(friendName);
+    document.getElementById("friend-search-input").value = "";
+});
+
+document.getElementById("btn-send-message")?.addEventListener("click", async () => {
+    const content = document.getElementById("chat-input-field").value.trim();
+    if (!content || !currentChatFriendId) return;
+    
+    const email = localStorage.getItem("arise_current_user");
+    document.getElementById("btn-send-message").disabled = true;
+    
+    try {
+        const res = await fetch("https://sovereign-6irh.onrender.com/api/messages/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, receiverId: currentChatFriendId, content })
+        });
+        
+        if (res.ok) {
+            document.getElementById("chat-input-field").value = "";
+            loadChatMessages();
+        } else {
+            showToast("Failed to send message.", "error");
+        }
+    } catch(e) {
+        showToast("Comms Error.", "error");
+    }
+    document.getElementById("btn-send-message").disabled = false;
+});
+
+// ==========================================
+// HOMEPAGE RENDERING LOGIC
+// ==========================================
+window.renderHomepageElements = function() {
+    // Render Daily Progress Ring
+    const totalDailies = state.quests.filter(q => q.type === 'daily').length || 1; // avoid / 0
+    const completedDailies = state.quests.filter(q => q.type === 'daily' && q.completed).length;
+    const percentage = Math.round((completedDailies / totalDailies) * 100);
+    
+    const ringText = document.getElementById("daily-progress-text");
+    if (ringText) ringText.innerText = `${percentage}%`;
+    
+    const ringContainer = document.querySelector(".daily-ring-container");
+    if (ringContainer) {
+        ringContainer.style.background = `conic-gradient(var(--color-primary) ${percentage}%, rgba(255,255,255,0.05) ${percentage}%)`;
+    }
+    
+    // Add generic System Logs just for flavor based on recent levels
+    const sysLog = document.getElementById("system-log-terminal");
+    if (sysLog) {
+        sysLog.innerHTML = `
+            <div style="color: var(--text-muted);">[SYSTEM] Neural link established.</div>
+            <div style="color: var(--color-primary);">[SYSTEM] Welcome back, Sovereign.</div>
+            <div style="color: var(--text-muted);">[LOG] Last synced: ${new Date().toLocaleTimeString()}</div>
+            <div style="color: var(--color-gold);">[STATUS] Current Rank: ${state.player.rank}</div>
+            <div style="color: var(--color-blue);">[STATS] Level ${state.player.level} | XP ${state.player.xp}/${state.player.xpToNextLevel}</div>
+        `;
+    }
+}

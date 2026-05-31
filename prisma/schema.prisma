@@ -22,6 +22,12 @@ model User {
   submissions      ProofSubmission[] 
   reviews          GuildReview[]     
 
+  // Friend & DM Relations
+  friendsAdded     Friend[]          @relation("UserFriends")
+  friendsOf        Friend[]          @relation("FriendUsers")
+  sentMessages     DirectMessage[]   @relation("SentMessages")
+  receivedMessages DirectMessage[]   @relation("ReceivedMessages")
+
   otpCodes         OtpCode[]
 
   // Guild Relation
@@ -113,4 +119,29 @@ model OtpCode {
   createdAt DateTime @default(now())
   
   user      User?    @relation(fields: [email], references: [email], onDelete: Cascade)
+}
+
+model Friend {
+  id        String   @id @default(uuid())
+  userId    String
+  friendId  String
+  status    String   @default("PENDING") // PENDING, ACCEPTED
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserFriends", fields: [userId], references: [id])
+  friend    User     @relation("FriendUsers", fields: [friendId], references: [id])
+
+  @@unique([userId, friendId])
+}
+
+model DirectMessage {
+  id        String   @id @default(uuid())
+  senderId  String
+  receiverId String
+  content   String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver  User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }
