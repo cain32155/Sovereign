@@ -8,7 +8,7 @@
   "theme_color": "#B026FF",
   "icons": [
     {
-      "src": "assets/shadow_monarch.png",
+      "src": "assets/app_logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
