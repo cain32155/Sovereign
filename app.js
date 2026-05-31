@@ -379,7 +379,7 @@ function renderNetworkTab() {
         hubContainer.innerHTML = `<div class="text-center text-muted mt-4"><span class="pulse">SYNCING WITH ARBITRATION QUEUE...</span></div>`;
         
         const reviewerId = encodeURIComponent(state.player.name || "TestUser");
-        fetch(`http://localhost:3000/api/reviews/queue?reviewerId=${reviewerId}`)
+        fetch(`https://sovereign-6irh.onrender.com/api/reviews/queue?reviewerId=${reviewerId}`)
             .then(res => {
                 if(!res.ok) throw new Error("Server Response Not OK");
                 return res.json();
@@ -947,7 +947,7 @@ document.getElementById("btn-form-guild")?.addEventListener("click", async () =>
     if(statusDiv) statusDiv.classList.remove("hidden");
     
     try {
-        const res = await fetch("http://localhost:3000/api/guild/create", {
+        const res = await fetch("https://sovereign-6irh.onrender.com/api/guild/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId: state.player.name || "TestUser", guildName: (state.player.name || "TestUser") + "'s Guild" })
@@ -1041,7 +1041,7 @@ document.getElementById("btn-scan-gates")?.addEventListener("click", () => {
 
 window.submitArbitrationVote = async function(submissionId, vote) {
     try {
-        await fetch('http://localhost:3000/api/reviews/vote', {
+        await fetch('https://sovereign-6irh.onrender.com/api/reviews/vote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ submissionId, reviewerId: state.player.name || "TestUser", vote })
