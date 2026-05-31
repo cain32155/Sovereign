@@ -1,0 +1,16 @@
+{
+  "name": "SOVEREIGN",
+  "short_name": "SOVEREIGN",
+  "description": "The System Core Engine",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a0a12",
+  "theme_color": "#B026FF",
+  "icons": [
+    {
+      "src": "assets/shadow_monarch.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
