@@ -241,7 +241,7 @@ document.getElementById("auth-verify-otp-btn").addEventListener("click", async (
             document.getElementById("auth-verify-otp-btn").innerText = "VERIFY & AWAKEN";
         }
     } catch(err) {
-        alert("Verification failed.");
+        alert("Network Error: The Sovereign API might be cold-starting. Please wait 30 seconds and try again.");
         document.getElementById("auth-verify-otp-btn").innerText = "VERIFY & AWAKEN";
     }
 });
