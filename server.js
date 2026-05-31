@@ -88,6 +88,25 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 });
 
 // ==========================================
+// USER PROFILE SETTINGS
+// ==========================================
+app.post('/api/user/update-profile', async (req, res) => {
+    const { email, hunterName, profileUrl } = req.body;
+    if (!email) return res.status(400).json({ error: "Email required." });
+
+    try {
+        const user = await prisma.user.update({
+            where: { email },
+            data: { hunterName, profileUrl }
+        });
+        res.json({ success: true, user });
+    } catch (err) {
+        console.error("Profile Update Error:", err);
+        res.status(500).json({ error: "Failed to update profile." });
+    }
+});
+
+// ==========================================
 // DISCORD BOT & RATE-LIMIT QUEUE
 // ==========================================
 const discordQueue = [];

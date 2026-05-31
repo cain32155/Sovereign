@@ -98,17 +98,38 @@
         <!-- 3. DASHBOARD SCREEN (STATUS WINDOW) -->
         <!-- ========================================== -->
         <section id="dashboard-screen" class="view-panel">
-            
-            <!-- TOP NAV / WALLET -->
-            <header class="hud-header">
-                <div class="hud-title">STATUS WINDOW</div>
-                <div class="hud-wallet">
-                    <span class="icon-gold">⚱️</span> <span id="gold-balance" class="font-digital text-gold">0</span> G
-                    <button id="btn-sign-out" class="btn-outline-red btn-xs" style="margin-left: 15px;">SIGN OUT</button>
-                </div>
-            </header>
+            <div class="app-layout">
+                <!-- SIDEBAR NAVIGATION -->
+                <nav id="sidebar" class="sidebar">
+                    <div class="sidebar-header">
+                        <div class="system-logo-glitch" style="font-size: 1.5rem; letter-spacing: 2px;">SOVEREIGN</div>
+                    </div>
+                    <div class="module-tabs sidebar-tabs">
+                        <button class="tab-btn active" data-target="tab-quests">QUESTS</button>
+                        <button class="tab-btn" data-target="tab-modules">MODULES</button>
+                        <button class="tab-btn" data-target="tab-shop">SHOP</button>
+                        <button class="tab-btn" data-target="tab-shadows">SHADOWS</button>
+                        <button class="tab-btn" data-target="tab-network">NETWORK</button>
+                        <button class="tab-btn" data-target="tab-settings">SETTINGS</button>
+                    </div>
+                    <div class="sidebar-footer">
+                        <button id="btn-sign-out" class="btn-outline-red" style="width: 100%;">LOGOUT</button>
+                    </div>
+                </nav>
 
-            <div class="dashboard-grid">
+                <div class="main-content">
+                    <!-- TOP NAV / WALLET -->
+                    <header class="hud-header">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <button id="mobile-menu-btn" class="btn-glow-blue btn-xs mobile-only" style="display: none;">≡</button>
+                            <div class="hud-title">STATUS WINDOW</div>
+                        </div>
+                        <div class="hud-wallet">
+                            <span class="icon-gold">⚱️</span> <span id="gold-balance" class="font-digital text-gold">0</span> G
+                        </div>
+                    </header>
+
+                    <div class="dashboard-grid">
                 <!-- LEFT COLUMN -->
                 <div class="col-left">
                     <div class="player-card glass-card">
@@ -196,15 +217,6 @@
 
                 <!-- RIGHT COLUMN -->
                 <div class="col-right">
-                    <!-- MODULE TABS -->
-                    <div class="module-tabs">
-                        <button class="tab-btn active" data-target="tab-quests">QUESTS</button>
-                        <button class="tab-btn" data-target="tab-modules">SYSTEM MODULES</button>
-                        <button class="tab-btn" data-target="tab-shop">SHOP</button>
-                        <button class="tab-btn" data-target="tab-shadows">SHADOWS</button>
-                        <button class="tab-btn" data-target="tab-network">NETWORK</button>
-                    </div>
-                    
                     <div class="tab-content-area glass-card">
                         <!-- TAB 1: QUESTS -->
                         <div id="tab-quests" class="tab-pane active">
@@ -355,9 +367,31 @@
                             </div>
                         </div>
 
+                        <!-- TAB 6: SETTINGS -->
+                        <div id="tab-settings" class="tab-pane">
+                            <div class="quests-header mb-4">
+                                <h3 class="text-blue glow-text">SYSTEM SETTINGS</h3>
+                            </div>
+                            
+                            <div class="glass-card">
+                                <h4>PROFILE CUSTOMIZATION</h4>
+                                <div class="mt-3">
+                                    <label class="text-muted" style="font-size: 0.8rem;">HUNTER NAME</label>
+                                    <input type="text" id="settings-username" class="input-dark mt-1" style="width: 100%;" placeholder="Enter new name...">
+                                </div>
+                                <div class="mt-3">
+                                    <label class="text-muted" style="font-size: 0.8rem;">AVATAR URL (Image Link)</label>
+                                    <input type="text" id="settings-avatar-url" class="input-dark mt-1" style="width: 100%;" placeholder="https://imgur.com/your-image.png">
+                                </div>
+                                <button id="btn-save-settings" class="btn-glow-blue mt-4">SAVE PROFILE UPDATES</button>
+                            </div>
+                        </div>
+
                     </div> <!-- /hud-content -->
                 </div> <!-- /col-right -->
             </div> <!-- /dashboard-grid -->
+            </div> <!-- /main-content -->
+            </div> <!-- /app-layout -->
         </section>
 
 
@@ -434,6 +468,9 @@
         </div>
 
     </div>
+
+    <!-- SYSTEM TOAST NOTIFICATIONS -->
+    <div id="system-toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
     <!-- Scripts -->
     <script src="app.js?v=3"></script>

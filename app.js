@@ -128,6 +128,45 @@ function transitionView(from, to) {
 }
 
 // ==========================================
+// SYSTEM TOAST NOTIFICATIONS
+// ==========================================
+function showToast(msg, type = "success") {
+    const container = document.getElementById("system-toast-container");
+    if (!container) return;
+
+    // Try to auto-detect if it's an error based on keywords
+    const lowerMsg = msg.toLowerCase();
+    if (lowerMsg.includes("fail") || lowerMsg.includes("error") || lowerMsg.includes("penalty") || lowerMsg.includes("decimated") || lowerMsg.includes("slashed") || lowerMsg.includes("requires")) {
+        type = "error";
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `system-toast toast-${type}`;
+    
+    const title = document.createElement("span");
+    title.className = "toast-title";
+    title.innerText = type === "error" ? "[SYSTEM WARNING]" : "[SYSTEM NOTIFICATION]";
+    
+    const body = document.createElement("span");
+    body.innerText = msg;
+    
+    toast.appendChild(title);
+    toast.appendChild(body);
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+// Override default alert
+window.alert = function(msg) {
+    showToast(msg);
+};
+
+// ==========================================
 // AUTH & ONBOARDING
 // ==========================================
 document.getElementById("show-login-btn").addEventListener("click", () => {
@@ -349,7 +388,9 @@ function syncDashboard() {
     document.getElementById("player-rank").textContent = `${state.player.rank}-RANK HUNTER`;
     document.getElementById("player-class").textContent = `CLASS: ${state.player.class.toUpperCase()}`;
     
-    if (state.player.avatar && state.player.avatar !== "👤") {
+    if (state.player.profileUrl) {
+        document.getElementById("player-avatar").innerHTML = `<img src="${state.player.profileUrl}" width="100%" height="100%" style="border-radius: 50%; object-fit: cover;" />`;
+    } else if (state.player.avatar && state.player.avatar !== "👤") {
         document.getElementById("player-avatar").textContent = state.player.avatar;
     } else {
         document.getElementById("player-avatar").innerHTML = `<img src="https://api.dicebear.com/7.x/adventurer/svg?seed=${state.player.name}" width="100%" height="100%" style="border-radius: 50%;" />`;
@@ -735,12 +776,28 @@ function processQuestCompletion(q) {
 // ==========================================
 document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", (e) => {
+        let targetBtn = e.target;
+        if (!targetBtn.classList.contains("tab-btn")) {
+            targetBtn = targetBtn.closest(".tab-btn");
+        }
+        
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
         document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
         
-        e.target.classList.add("active");
-        document.getElementById(e.target.getAttribute("data-target")).classList.add("active");
+        targetBtn.classList.add("active");
+        document.getElementById(targetBtn.getAttribute("data-target")).classList.add("active");
+        
+        // Mobile Sidebar Close
+        const sidebar = document.getElementById("sidebar");
+        if (sidebar && sidebar.classList.contains("open")) {
+            sidebar.classList.remove("open");
+        }
     });
+});
+
+// Mobile Hamburger Menu
+document.getElementById("mobile-menu-btn")?.addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("open");
 });
 
 // Gate Scanner (Boss Raids)
@@ -1128,3 +1185,47 @@ window.updateDailyTimer = function() {
     tick(); // run instantly
     window.dailyTimerInterval = setInterval(tick, 1000);
 }
+// ==========================================
+// PROFILE SETTINGS LOGIC
+// ==========================================
+document.getElementById("btn-save-settings")?.addEventListener("click", async () => {
+    const newName = document.getElementById("settings-username").value.trim();
+    const newAvatar = document.getElementById("settings-avatar-url").value.trim();
+    
+    if (!newName && !newAvatar) return showToast("No changes detected.", "error");
+
+    const email = localStorage.getItem("arise_current_user");
+    const updateData = { email };
+    
+    if (newName) updateData.hunterName = newName;
+    if (newAvatar) updateData.profileUrl = newAvatar;
+
+    document.getElementById("btn-save-settings").innerText = "SAVING...";
+
+    try {
+        const res = await fetch("https://sovereign-6irh.onrender.com/api/user/update-profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updateData)
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            if (newName) state.player.name = newName;
+            if (newAvatar) state.player.profileUrl = newAvatar;
+            saveState();
+            syncDashboard();
+            showToast("Profile Settings Synchronized!");
+            
+            document.getElementById("settings-username").value = "";
+            document.getElementById("settings-avatar-url").value = "";
+        } else {
+            showToast(data.error || "Failed to update settings.", "error");
+        }
+    } catch (e) {
+        showToast("System Error: Could not connect to database.", "error");
+    }
+    
+    document.getElementById("btn-save-settings").innerText = "SAVE PROFILE UPDATES";
+});

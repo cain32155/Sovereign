@@ -310,7 +310,65 @@ button {
 .mindscape-card { border-color: var(--color-secondary); box-shadow: var(--glow-secondary); }
 .gate-timer { font-size: 5rem; color: var(--color-accent); text-shadow: var(--glow-red); }
 
-/* Dashboard Layout */
+/* Dashboard Layout & Sidebar */
+.app-layout {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 280px;
+    background: rgba(0, 0, 0, 0.8);
+    border-right: 1px solid var(--border-glass);
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease;
+    z-index: 500;
+}
+
+.sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-glass);
+    text-align: center;
+}
+
+.sidebar-tabs {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 20px 10px;
+}
+
+.sidebar-tabs .tab-btn {
+    text-align: left;
+    padding: 15px 20px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+}
+
+.sidebar-tabs .tab-btn.active {
+    background: rgba(0, 229, 255, 0.1);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid var(--border-glass);
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
 .hud-header {
     display: flex;
     justify-content: space-between;
@@ -319,13 +377,14 @@ button {
     border-bottom: 1px solid var(--border-glass);
     background: rgba(0,0,0,0.3);
 }
+
 .hud-title {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--color-secondary);
     letter-spacing: 2px;
 }
-/* Dashboard */
+
 .dashboard-grid {
     display: flex;
     flex: 1;
@@ -335,6 +394,47 @@ button {
 }
 .col-left { flex: 0 0 350px; }
 .col-right { flex: 1; display: flex; flex-direction: column; }
+
+/* System Toast Notifications */
+.system-toast {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--color-primary);
+    border-left: 4px solid var(--color-primary);
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 4px;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+    font-family: var(--font-main);
+    pointer-events: auto;
+    animation: slideInRight 0.3s forwards, fadeOut 0.5s forwards 4.5s;
+    display: flex;
+    flex-direction: column;
+}
+.system-toast.toast-error {
+    border-color: var(--color-red);
+    box-shadow: 0 0 15px rgba(255, 51, 102, 0.2);
+}
+.system-toast.toast-success {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 15px rgba(187, 134, 252, 0.2);
+}
+.toast-title {
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    color: var(--color-primary);
+}
+.system-toast.toast-error .toast-title { color: var(--color-red); }
+.system-toast.toast-success .toast-title { color: var(--color-accent); }
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
 
 /* Player Card */
 .player-card { text-align: center; }
@@ -517,6 +617,15 @@ button {
 .radar-log.highlight { color: var(--color-gold); text-shadow: 0 0 5px var(--color-gold); }
 
 /* Responsive Adjustments for Mobile */
+@media (max-width: 800px) {
+    .dashboard-grid {
+        flex-direction: column;
+    }
+    .col-left {
+        flex: 0 0 auto;
+    }
+}
+
 @media (max-width: 600px) {
     .system-logo-glitch {
         font-size: 2.5rem;
@@ -530,5 +639,21 @@ button {
     .auth-terminal {
         padding: 10px;
         font-size: 0.85rem;
+    }
+    
+    /* Sidebar Mobile Overrides */
+    .mobile-only {
+        display: block !important;
+    }
+    .sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        transform: translateX(-100%);
+        box-shadow: 5px 0 15px rgba(0,0,0,0.8);
+    }
+    .sidebar.open {
+        transform: translateX(0);
     }
 }
