@@ -1359,6 +1359,24 @@ window.renderHomepageElements = function() {
         ringContainer.style.background = `conic-gradient(var(--color-primary) ${percentage}%, rgba(255,255,255,0.05) ${percentage}%)`;
     }
     
+    // Render Mini Quests List
+    const miniQuestsContainer = document.getElementById("home-daily-quests-mini");
+    if (miniQuestsContainer) {
+        let html = `<div style="font-size: 0.8rem; color: var(--color-gold); margin-bottom: 5px; font-family: var(--font-digital);">ACTIVE DIRECTIVES:</div>`;
+        const dailies = state.quests.filter(q => q.type === 'daily');
+        if (state.quests.daily && state.quests.daily.length > 0) {
+            state.quests.daily.forEach(q => {
+                html += `
+                <div style="background: rgba(0,0,0,0.4); padding: 8px; border-left: 2px solid ${q.completed ? 'var(--color-blue)' : 'var(--color-primary)'}; margin-bottom: 5px; font-size: 0.85rem;">
+                    <div style="color: ${q.completed ? 'var(--text-muted)' : 'white'}; text-decoration: ${q.completed ? 'line-through' : 'none'};">${q.name}</div>
+                </div>`;
+            });
+        } else {
+            html += `<div class="text-muted" style="font-size: 0.8rem;">No directives assigned. Waiting for System update...</div>`;
+        }
+        miniQuestsContainer.innerHTML = html;
+    }
+    
     // Set random quote
     const quoteEl = document.getElementById("system-quote-text");
     if (quoteEl) {

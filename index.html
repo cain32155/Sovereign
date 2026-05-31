@@ -264,8 +264,15 @@
                                             <div style="width: 120px; height: 120px; background: var(--bg-panel); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-digital); font-size: 2rem; color: var(--color-primary); font-weight: bold; text-shadow: var(--glow-primary);" id="daily-progress-text">0%</div>
                                         </div>
                                         <p class="text-muted" style="font-size: 0.8rem;">Daily Directives Cleared</p>
+                                        
+                                        <!-- Mini Quests List -->
+                                        <div id="home-daily-quests-mini" class="mt-4" style="text-align: left;">
+                                            <div style="font-size: 0.8rem; color: var(--color-gold); margin-bottom: 5px; font-family: var(--font-digital);">ACTIVE DIRECTIVES:</div>
+                                            <!-- Quests injected here via JS -->
+                                        </div>
+                                        
                                         <div class="mt-3">
-                                            <button class="btn-glow-blue btn-sm" onclick="document.querySelector('[data-target=\'tab-quests\']').click()">VIEW ALL DIRECTIVES</button>
+                                            <button class="btn-glow-blue btn-sm" onclick="document.querySelector('[data-target=\'tab-quests\']').click()" style="width: 100%;">VIEW ALL DIRECTIVES</button>
                                         </div>
                                     </div>
                                     
