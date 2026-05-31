@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  hunterName       String            @unique
+  trustScore       Float             @default(1.0)
+  guildPoints      Int               @default(0)
+  
+  // Arbitration Relations
+  submissions      ProofSubmission[] 
+  reviews          GuildReview[]     
+
+  // Guild Relation
+  guildId          String?
+  guild            Guild?            @relation(fields: [guildId], references: [id])
+
+  // Friends System (Self-Relation)
+  friends          User[]            @relation("UserFriends")
+  friendOf         User[]            @relation("UserFriends")
+  
+  friendReqSent    FriendRequest[]   @relation("Sender")
+  friendReqRecv    FriendRequest[]   @relation("Receiver")
+  
+  // Anti-Cheat Heartbeat
+  dungeonSession   DungeonSession?
+}
+
+model DungeonSession {
+  id               String            @id @default(uuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id])
+  startedAt        DateTime          @default(now())
+  expiresAt        DateTime
+  status           String            @default("ACTIVE") // ACTIVE, FAILED, COMPLETED
+}
+
+// ==========================================
+// GUILDS & COMMUNITY
+// ==========================================
+
+model Guild {
+  id               String            @id @default(uuid())
+  name             String            @unique
+  description      String?
+  inviteCode       String            @unique 
+  isPublic         Boolean           @default(false)
+  
+  members          User[]
+  createdAt        DateTime          @default(now())
+}
+
+model FriendRequest {
+  id               String            @id @default(uuid())
+  senderId         String
+  receiverId       String
+  status           String            @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  
+  sender           User              @relation("Sender", fields: [senderId], references: [id])
+  receiver         User              @relation("Receiver", fields: [receiverId], references: [id])
+  
+  @@unique([senderId, receiverId])
+}
+
+// ==========================================
+// ARBITRATION (PEER REVIEW)
+// ==========================================
+
+model ProofSubmission {
+  id          String        @id @default(uuid())
+  userId      String
+  imageUrl    String
+  questTitle  String        @default("Quest")
+  status      String        @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviews     GuildReview[]
+  guildId     String?       // Track the origin guild to filter out reviewers immediately
+  createdAt   DateTime      @default(now())
+  
+  user        User          @relation(fields: [userId], references: [id])
+}
+
+model GuildReview {
+  id               String            @id @default(uuid())
+  submissionId     String
+  reviewerId       String
+  vote             String            // APPROVED, REJECTED
+  isHoneypot       Boolean           @default(false)
+  
+  submission       ProofSubmission   @relation(fields: [submissionId], references: [id])
+  reviewer         User              @relation(fields: [reviewerId], references: [id])
+
+  @@unique([submissionId, reviewerId]) 
+}

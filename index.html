@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SOVEREIGN: The System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- TensorFlow.js for Image Recognition -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest"></script>
+</head>
+<body data-theme="default">
+
+    <div id="app-container">
+
+        <!-- ========================================== -->
+        <!-- 1. AUTH SCREEN -->
+        <!-- ========================================== -->
+        <section id="auth-screen" class="view-panel active">
+            <div class="auth-content">
+                <div class="system-logo-glitch" data-text="SOVEREIGN">SOVEREIGN</div>
+                <div class="auth-terminal">
+                    <p class="typewriter-text">[SYSTEM NOTIFICATION]</p>
+                    <p class="typewriter-text delay-1">Unregistered entity detected in the Dungeon.</p>
+                    <p class="typewriter-text delay-2">To survive, you must Awaken.</p>
+                    <p class="typewriter-text delay-3 text-purple">> Awaiting Account Synchronization...</p>
+                </div>
+                <button id="show-login-btn" class="btn-glow-blue btn-lg hidden-init">ENTER DUNGEON</button>
+                
+                <!-- Login / Sign up Form -->
+                <div id="auth-form-container" class="glass-card mt-4 hidden">
+                    <h3 class="text-secondary mb-2">HUNTER REGISTRATION</h3>
+                    <input type="email" id="auth-email" class="input-dark mt-2" placeholder="Google Account (Gmail)" required style="width:100%">
+                    <input type="text" id="auth-username" class="input-dark mt-2" placeholder="Hunter Name" required style="width:100%">
+                    <input type="password" id="auth-password" class="input-dark mt-2" placeholder="Password" required style="width:100%">
+                    <div class="mt-3">
+                        <button id="auth-submit-btn" class="btn-glow-purple" style="width:100%">LOGIN / SIGN UP</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- 2. ONBOARDING (AWAKENING) SCREEN -->
+        <!-- ========================================== -->
+        <section id="onboarding-screen" class="view-panel">
+            <div class="chat-container">
+                <div id="onboarding-chat-feed" class="chat-feed">
+                    <!-- Chat bubbles injected here -->
+                </div>
+                
+                <div class="chat-controls">
+                    <!-- Dynamic Select Options Grid -->
+                    <div id="chat-multi-options" class="chat-options-grid hidden"></div>
+                </div>
+            </div>
+            
+            <!-- Awakening Ceremony Overlay -->
+            <div id="awakening-ceremony" class="overlay-container ceremony-overlay hidden">
+                <div class="ceremony-content">
+                    <div class="system-alert-tag text-purple">[ AWAKENING COMPLETED ]</div>
+                    <h2 class="ceremony-title text-shadow-purple pulse">MANA FLOW DETECTED</h2>
+                    <div class="ceremony-scan-lines"></div>
+                    <div id="awakened-class-card" class="glass-card class-card-reveal">
+                        <!-- Filled by JS -->
+                    </div>
+                    <button id="enter-system-btn" class="btn-glow-purple btn-lg hidden">ENTER THE SYSTEM</button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- 3. DASHBOARD SCREEN (STATUS WINDOW) -->
+        <!-- ========================================== -->
+        <section id="dashboard-screen" class="view-panel">
+            
+            <!-- TOP NAV / WALLET -->
+            <header class="hud-header">
+                <div class="hud-title">STATUS WINDOW</div>
+                <div class="hud-wallet">
+                    <span class="icon-gold">⚱️</span> <span id="gold-balance" class="font-digital text-gold">0</span> G
+                    <button id="btn-sign-out" class="btn-outline-red btn-xs" style="margin-left: 15px;">SIGN OUT</button>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- LEFT COLUMN -->
+                <div class="col-left">
+                    <div class="player-card glass-card">
+                        <div class="avatar-wrapper" id="player-avatar-border">
+                            <div class="avatar" id="player-avatar">👤</div>
+                        </div>
+                        <div class="player-info">
+                            <h2 id="player-name">HUNTER_001</h2>
+                            <div class="player-title" id="player-title-display">No Title</div>
+                            <div class="player-rank" id="player-rank">E-RANK HUNTER</div>
+                            <div class="player-class text-purple" id="player-class">CLASS: UNKNOWN</div>
+                        </div>
+                        
+                        <div class="bars-container mt-3">
+                            <div class="bar-row">
+                                <span class="bar-label text-red">HP</span>
+                                <div class="progress-track">
+                                    <div id="hp-progress-bar" class="progress-fill fill-red" style="width: 100%;"></div>
+                                </div>
+                                <span id="hp-value" class="bar-value font-digital">100 / 100</span>
+                            </div>
+                            
+                            <div class="bar-row mt-2">
+                                <span class="bar-label text-blue">FATIGUE</span>
+                                <div class="progress-track">
+                                    <div id="fatigue-progress-bar" class="progress-fill fill-blue" style="width: 0%;"></div>
+                                </div>
+                                <span id="fatigue-value" class="bar-value font-digital">0 / 100</span>
+                            </div>
+
+                            <div class="bar-row mt-2">
+                                <span class="bar-label text-purple">XP <span id="hud-level-tag">LVL 1</span></span>
+                                <div class="progress-track">
+                                    <div id="xp-progress-bar" class="progress-fill fill-purple" style="width: 0%;"></div>
+                                </div>
+                                <span id="xp-text" class="bar-value font-digital">0 / 100</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-card glass-card mt-3">
+                        <div class="card-header">
+                            <h3>PARAMETERS</h3>
+                            <div id="stat-points-alert" class="badge-alert hidden">PTS: <span id="stat-points-count">0</span></div>
+                        </div>
+                        <div class="stats-list mt-2">
+                            <div class="stat-row">
+                                <span class="stat-name">STRENGTH</span>
+                                <span class="stat-val font-digital" id="stat-str">10</span>
+                                <span class="stat-buff font-digital" id="buff-str">+0</span>
+                                <button class="btn-allocate" data-stat="str" disabled>+</button>
+                            </div>
+                            <div class="stat-row mt-1">
+                                <span class="stat-name">AGILITY</span>
+                                <span class="stat-val font-digital" id="stat-agi">10</span>
+                                <span class="stat-buff font-digital" id="buff-agi">+0</span>
+                                <button class="btn-allocate" data-stat="agi" disabled>+</button>
+                            </div>
+                            <div class="stat-row mt-1">
+                                <span class="stat-name">VITALITY</span>
+                                <span class="stat-val font-digital" id="stat-vit">10</span>
+                                <span class="stat-buff font-digital" id="buff-vit">+0</span>
+                                <button class="btn-allocate" data-stat="vit" disabled>+</button>
+                            </div>
+                            <div class="stat-row mt-1">
+                                <span class="stat-name">INTELLECT</span>
+                                <span class="stat-val font-digital" id="stat-int">10</span>
+                                <span class="stat-buff font-digital" id="buff-int">+0</span>
+                                <button class="btn-allocate" data-stat="int" disabled>+</button>
+                            </div>
+                            <div class="stat-row mt-1">
+                                <span class="stat-name">PERCEPTION</span>
+                                <span class="stat-val font-digital" id="stat-per">10</span>
+                                <span class="stat-buff font-digital" id="buff-per">+0</span>
+                                <button class="btn-allocate" data-stat="per" disabled>+</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="buffs-card glass-card mt-3">
+                        <div class="card-header"><h3>ACTIVE BUFFS</h3></div>
+                        <div id="active-buffs-list" class="buffs-flex mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN -->
+                <div class="col-right">
+                    <!-- MODULE TABS -->
+                    <div class="module-tabs">
+                        <button class="tab-btn active" data-target="tab-quests">QUESTS</button>
+                        <button class="tab-btn" data-target="tab-modules">SYSTEM MODULES</button>
+                        <button class="tab-btn" data-target="tab-shop">SHOP</button>
+                        <button class="tab-btn" data-target="tab-shadows">SHADOWS</button>
+                        <button class="tab-btn" data-target="tab-network">NETWORK</button>
+                    </div>
+                    
+                    <div class="tab-content-area glass-card">
+                        <!-- TAB 1: QUESTS -->
+                        <div id="tab-quests" class="tab-pane active">
+                            <div class="quests-header">
+                                <h3 class="text-purple glow-text">ACTIVE DIRECTIVES</h3>
+                                <div id="daily-timer" class="timer-tag font-digital">TIME REMAINING: 00:00:00</div>
+                            </div>
+                            
+                            <div class="quest-category mt-3">
+                                <h3>📜 CAMPAIGN</h3>
+                                <div id="campaign-container" class="quest-list mt-2"></div>
+                            </div>
+
+                            <div class="quest-category mt-4">
+                                <h3>📋 DAILY QUESTS</h3>
+                                <div id="daily-quest-items" class="quest-list mt-2"></div>
+                            </div>
+                            
+                            <div class="quest-category mt-4">
+                                <h3 class="text-red">⚠️ RED GATES (BOSS RAIDS)</h3>
+                                <div id="red-gate-container" class="quest-list mt-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: SYSTEM MODULES -->
+                        <div id="tab-modules" class="tab-pane">
+                            <div class="module-card mb-3 p-0" style="position: relative; height: 350px; overflow: hidden; border: 1px solid var(--color-red);">
+                                <!-- Map Background (Low Res Wiki SVG inverted for dark mode) -->
+                                <div class="world-map-bg" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg'); background-size: cover; background-position: center; filter: invert(1) brightness(2) contrast(4) opacity(0.7); width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none;"></div>
+                                
+                                <div style="position: absolute; top: 15px; left: 15px; z-index: 10; background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 5px; border-left: 2px solid var(--color-red);">
+                                    <h4 class="text-red glow-text" style="margin: 0; text-shadow: 0 0 10px var(--color-red);"><i class="fas fa-satellite-dish"></i> GLOBAL GATE SCANNER</h4>
+                                </div>
+                                
+                                <div id="gate-map-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5;">
+                                    <!-- Portals will spawn here via JS -->
+                                </div>
+                                
+                                <div style="position: absolute; bottom: 15px; right: 15px; z-index: 10;">
+                                    <button id="btn-scan-gates" class="btn-glow-red btn-sm pulse"><i class="fas fa-search-location"></i> INITIATE SCAN</button>
+                                </div>
+                            </div>
+                            
+                            <div class="module-card mt-3">
+                                <h4>⛩️ THE DUNGEON GATE</h4>
+                                <p class="text-muted">Enter focus mode. Leaving the gate early incurs heavy HP damage.</p>
+                                <div class="module-actions">
+                                    <input type="number" id="gate-duration" class="input-dark" placeholder="Minutes" min="10" max="120" value="25">
+                                    <button id="btn-enter-gate" class="btn-glow-blue btn-sm">ENTER GATE</button>
+                                </div>
+                            </div>
+
+                            <div class="module-card mt-3">
+                                <h4>🥷 STEALTH BUFF (DIGITAL DETOX)</h4>
+                                <p class="text-muted">Swear off social media for the day to build a stacking XP multiplier.</p>
+                                <div class="module-actions">
+                                    <button id="btn-activate-stealth" class="btn-glow-purple btn-sm">ACTIVATE</button>
+                                    <button id="btn-abort-stealth" class="btn-outline-red btn-sm hidden">ABORT (HP LOSS)</button>
+                                </div>
+                            </div>
+
+                            <div class="module-card mt-3">
+                                <h4>🌌 THE MINDSCAPE</h4>
+                                <p class="text-muted">Reflect or meditate to build the Aura of Clarity (protects against next failed quest).</p>
+                                <div class="module-actions">
+                                    <button id="btn-enter-mindscape" class="btn-glow-blue btn-sm">ENTER MINDSCAPE</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: SHOP -->
+                        <div id="tab-shop" class="tab-pane">
+                            <div class="shop-header">
+                                <h3>SYSTEM STORE</h3>
+                                <button id="btn-add-irl-reward" class="btn-outline-gold btn-xs">+ ADD IRL REWARD</button>
+                            </div>
+                            
+                            <h4 class="mt-3 text-gold">IRL REWARDS</h4>
+                            <div id="irl-shop-grid" class="shop-grid"></div>
+                            
+                            <h4 class="mt-4 text-purple">SYSTEM COSMETICS</h4>
+                            <div id="cosmetics-shop-grid" class="shop-grid"></div>
+                        </div>
+
+                        <!-- TAB 4: SHADOW ARMY & SYNTHESIS -->
+                        <div id="tab-shadows" class="tab-pane">
+                            <h3>SHADOW EXTRACTION ALTAR</h3>
+                            <div class="shadow-stats">
+                                <p>EXTRACTIONS AVAILABLE: <span id="extraction-attempts" class="text-purple font-digital">0</span></p>
+                                <button id="arise-btn" class="btn-glow-purple btn-lg btn-disabled" disabled>SOVEREIGN</button>
+                            </div>
+                            
+                            <h4 class="mt-4">SHADOW ARMY INVENTORY</h4>
+                            <div id="extracted-shadows-list" class="shadow-grid mt-2"></div>
+                            
+                            <h4 class="mt-4 text-blue">SHADOW SYNTHESIS</h4>
+                            <p class="text-muted text-sm">Crystals: <span id="mana-crystals-count" class="font-digital text-blue">0</span></p>
+                            <div class="synthesis-grid mt-2">
+                                <div class="synth-item">
+                                    <span>Elixir of Vitality (Restores 30 HP)</span>
+                                    <button class="btn-glow-blue btn-xs btn-craft" data-item="elixir" data-cost="5">CRAFT (5)</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 5: NETWORK -->
+                        <div id="tab-network" class="tab-pane">
+                            <div class="network-header">
+                                <h3 class="text-blue glow-text">HUNTER NETWORK</h3>
+                            </div>
+                            
+                            <div class="network-grid">
+                                <!-- Left: Leaderboards -->
+                                <!-- Left: Community Hub -->
+                                <div class="leaderboard-section" style="flex: 1.5; display: flex; flex-direction: column;">
+                                    <div class="chat-tabs mb-2" id="hub-tabs">
+                                        <button class="chat-tab-btn active" data-hub="arbitration"><i class="fas fa-balance-scale"></i> Arbitration</button>
+                                        <button class="chat-tab-btn" data-hub="armory"><i class="fas fa-shield-alt"></i> Armory</button>
+                                        <button class="chat-tab-btn" data-hub="radar"><i class="fas fa-broadcast-tower"></i> Radar</button>
+                                    </div>
+                                    <div class="leaderboard-content glass-card" id="hub-content" style="position: relative; overflow-y: auto; flex: 1; padding: 15px;">
+                                        <!-- Hub content will be injected via JS -->
+                                    </div>
+                                </div>
+
+                                <!-- Right: Comms & Guilds -->
+                                <div class="comms-section">
+                                    <div class="guild-action-bar glass-card mb-2">
+                                        <h4 class="text-purple">GUILD STATUS</h4>
+                                        <span id="current-guild-display" class="text-muted font-digital">No Guild Affiliation</span>
+                                        <button id="btn-form-guild" class="btn-glow-purple btn-sm mt-2" style="width:100%">Form Guild <i class="fas fa-qrcode"></i></button>
+                                    </div>
+                                    
+                                    <div class="discord-portal glass-card text-center" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+                                        <i class="fab fa-discord" style="font-size: 4rem; color: #5865F2; margin-bottom: 15px; text-shadow: 0 0 20px rgba(88,101,242,0.6);"></i>
+                                        <h3>DISCORD COMMS LINK</h3>
+                                        <p class="text-muted mt-2" style="font-size: 0.9rem;">Join a Guild to unlock access to the secure communication channels.</p>
+                                        
+                                        <button id="btn-connect-discord" class="btn-glow-blue mt-4" style="border-color: #5865F2; color: #5865F2; box-shadow: 0 0 15px rgba(88,101,242,0.3);">
+                                            <i class="fab fa-discord"></i> ENTER GUILD DISCORD
+                                        </button>
+                                        
+                                        <div id="discord-queue-status" class="mt-3 hidden font-digital text-gold">
+                                            <span class="pulse">CHANNEL PROVISIONING IN PROGRESS...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div> <!-- /hud-content -->
+                </div> <!-- /col-right -->
+            </div> <!-- /dashboard-grid -->
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- OVERLAYS & MODALS -->
+        <!-- ========================================== -->
+
+        <!-- Verification Modal (Proof of Work) -->
+        <div id="verification-modal" class="overlay-container hidden">
+            <div class="modal-card glass-card">
+                <h3 class="text-purple">SYSTEM VERIFICATION PROTOCOL</h3>
+                <p id="verification-prompt">Submit proof to complete this quest.</p>
+                
+                <div id="verification-camera-zone" class="hidden">
+                    <video id="webcam-feed" autoplay playsinline></video>
+                    <button id="btn-capture-photo" class="btn-glow-blue">SNAP PHOTO</button>
+                    <canvas id="photo-canvas" class="hidden"></canvas>
+                </div>
+                
+                <div id="verification-text-zone" class="hidden mt-2">
+                    <textarea id="verification-log" class="input-dark" rows="4" placeholder="Log your exact work output here..."></textarea>
+                </div>
+                
+                <div class="modal-actions mt-3">
+                    <button id="btn-cancel-verification" class="btn-outline-red">CANCEL</button>
+                    <button id="btn-submit-verification" class="btn-glow-purple">SUBMIT PROOF</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dungeon Gate Overlay -->
+        <div id="dungeon-gate-overlay" class="overlay-container gate-bg hidden">
+            <div class="gate-content text-center">
+                <h2 class="text-red pulse">DUNGEON GATE ACTIVE</h2>
+                <div id="gate-timer-display" class="gate-timer font-digital">25:00</div>
+                <p class="mt-3">Focus. If you leave or abort, you will take massive damage.</p>
+                <button id="btn-abort-gate" class="btn-outline-red mt-4">ABORT RAID</button>
+            </div>
+        </div>
+        
+        <!-- Mindscape Overlay -->
+        <div id="mindscape-overlay" class="overlay-container mindscape-bg hidden">
+            <div class="modal-card glass-card mindscape-card">
+                <h3 class="text-blue">THE MINDSCAPE</h3>
+                <p>Reflect and build the Aura of Clarity.</p>
+                <textarea id="mindscape-journal" class="input-dark mt-2" rows="5" placeholder="What did you learn today? What are you grateful for?"></textarea>
+                <div class="modal-actions mt-3">
+                    <button id="btn-exit-mindscape" class="btn-outline-red">EXIT</button>
+                    <button id="btn-complete-mindscape" class="btn-glow-blue">MEDITATE & SEAL</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boss Raid Overlay -->
+        <div id="boss-raid-overlay" class="overlay-container boss-bg hidden">
+            <div class="boss-content text-center">
+                <h1 class="text-red glitch" data-text="WARNING: BOSS MONSTER DETECTED">WARNING: BOSS MONSTER DETECTED</h1>
+                <p class="mt-2 text-xl" id="boss-raid-desc">You have suppressed your Vice for 21 days.</p>
+                <button id="btn-engage-boss" class="btn-glow-red btn-lg mt-4 pulse">ENGAGE BOSS</button>
+            </div>
+        </div>
+
+        <!-- Penalty Zone Overlay -->
+        <div id="penalty-zone-overlay" class="overlay-container penalty-bg hidden">
+            <div class="penalty-content text-center">
+                <h1 class="text-red glitch" data-text="PENALTY ZONE">PENALTY ZONE</h1>
+                <p class="mt-2">HP has reached 0. Survive the penalty to return.</p>
+                <div class="penalty-task mt-4">
+                    <h3>SURVIVAL QUEST</h3>
+                    <p>Perform 100 Burpees or run 5km immediately.</p>
+                </div>
+                <button id="btn-clear-penalty" class="btn-glow-red mt-4">PENALTY CLEARED</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js?v=3"></script>
+</body>
+</html>
+

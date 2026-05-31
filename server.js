@@ -1,0 +1,236 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(__dirname)); // Serve the ARISE frontend files
+
+const { Client, GatewayIntentBits, ChannelType, PermissionsBitField } = require('discord.js');
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// ==========================================
+// DISCORD BOT & RATE-LIMIT QUEUE
+// ==========================================
+const discordQueue = [];
+let isProcessingQueue = false;
+
+async function processDiscordQueue() {
+    if (isProcessingQueue || discordQueue.length === 0) return;
+    isProcessingQueue = true;
+
+    while (discordQueue.length > 0) {
+        const task = discordQueue.shift();
+        try {
+            await task();
+        } catch (err) {
+            console.error("Discord Queue Task Error:", err);
+        }
+        // Wait 2 seconds between discord API calls to avoid rate limit
+        await new Promise(res => setTimeout(res, 2000));
+    }
+    
+    isProcessingQueue = false;
+}
+
+client.once('ready', () => {
+    console.log(`[SYSTEM] Discord Bot Online as ${client.user.tag}`);
+});
+
+if (process.env.DISCORD_BOT_TOKEN) {
+    client.login(process.env.DISCORD_BOT_TOKEN).catch(err => console.error("Discord Login Failed:", err));
+} else {
+    console.warn("[SYSTEM WARNING] DISCORD_BOT_TOKEN missing. Discord API disabled.");
+}
+
+// ==========================================
+// THE HEARTBEAT ENGINE (APP-KILL EXPLOIT FIX)
+// ==========================================
+app.post('/api/heartbeat', async (req, res) => {
+    const { userId, inDungeon, gateDurationMins } = req.body;
+    
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
+    
+    try {
+        let session = await prisma.dungeonSession.findUnique({ where: { userId } });
+        
+        if (inDungeon) {
+            const expiresAt = new Date(Date.now() + (gateDurationMins || 25) * 60000);
+            
+            if (!session) {
+                session = await prisma.dungeonSession.create({
+                    data: { userId, expiresAt, status: "ACTIVE" }
+                });
+            } else if (session.status === "ACTIVE") {
+                // Heartbeat pulse updates logic if needed
+            }
+            return res.json({ status: "ALIVE", session });
+        } else {
+            // Clean exit or not in dungeon
+            if (session && session.status === "ACTIVE") {
+                if (new Date() > session.expiresAt) {
+                    await prisma.dungeonSession.update({
+                        where: { userId },
+                        data: { status: "COMPLETED" }
+                    });
+                    return res.json({ status: "CLEARED" });
+                } else {
+                    await prisma.dungeonSession.update({
+                        where: { userId },
+                        data: { status: "FAILED" }
+                    });
+                    return res.json({ status: "PENALTY_APPLIED" });
+                }
+            }
+            return res.json({ status: "IDLE" });
+        }
+    } catch (error) {
+        console.error("Heartbeat error:", error);
+        res.status(500).json({ error: "System Error" });
+    }
+});
+
+// ==========================================
+// GUILD ARBITRATION (PEER REVIEW)
+// ==========================================
+app.post('/api/submissions', async (req, res) => {
+    const { userId, questTitle, imageUrl, mlConfidence } = req.body;
+    
+    try {
+        // Find user to check guild
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        
+        const submission = await prisma.proofSubmission.create({
+            data: {
+                userId,
+                guildId: user?.guildId,
+                questTitle,
+                imageUrl,
+                status: "PENDING"
+            }
+        });
+        res.json({ message: "Submission sent to Guild Arbitration.", submission });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to queue submission." });
+    }
+});
+
+app.get('/api/reviews/queue', async (req, res) => {
+    const { reviewerId } = req.query;
+    if (!reviewerId) return res.status(400).json({ error: "Missing reviewerId" });
+    
+    try {
+        const reviewer = await prisma.user.findUnique({ where: { id: reviewerId } });
+        
+        // Find pending submissions NOT from the reviewer, and NOT from their guild
+        const queue = await prisma.proofSubmission.findMany({
+            where: {
+                status: "PENDING",
+                userId: { not: reviewerId },
+                OR: [
+                    { guildId: null },
+                    { guildId: { not: reviewer?.guildId || "NONE" } }
+                ],
+                reviews: {
+                    none: { reviewerId } // Haven't reviewed this yet
+                }
+            },
+            take: 10
+        });
+        
+        res.json({ queue });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch queue." });
+    }
+});
+
+app.post('/api/reviews/vote', async (req, res) => {
+    const { submissionId, reviewerId, vote } = req.body;
+    try {
+        await prisma.guildReview.create({
+            data: { submissionId, reviewerId, vote }
+        });
+        
+        // Prototype logic: Resolve submission instantly on first vote
+        await prisma.proofSubmission.update({
+            where: { id: submissionId },
+            data: { status: vote }
+        });
+        
+        res.json({ message: "Vote recorded." });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to submit vote." });
+    }
+});
+
+// ==========================================
+// GUILD API (WITH DISCORD INTEGRATION)
+// ==========================================
+app.post('/api/guild/create', async (req, res) => {
+    const { userId, guildName } = req.body;
+    if (!userId || !guildName) return res.status(400).json({ error: "Missing parameters" });
+    
+    try {
+        // Find existing user or mock if testing
+        let user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            user = await prisma.user.create({ 
+                data: { 
+                    id: userId, 
+                    hunterName: userId,
+                    email: userId + "@mock.com",
+                    trustScore: 1.0 
+                } 
+            });
+        }
+
+        const guild = await prisma.guild.create({
+            data: {
+                name: guildName,
+                leaderId: userId,
+                inviteCode: "G_" + Math.random().toString(36).substring(2, 8).toUpperCase()
+            }
+        });
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { guildId: guild.id }
+        });
+
+        const serverId = process.env.DISCORD_GUILD_ID;
+        if (serverId && process.env.DISCORD_BOT_TOKEN) {
+            discordQueue.push(async () => {
+                const discordGuild = await client.guilds.fetch(serverId);
+                if (discordGuild) {
+                    const channel = await discordGuild.channels.create({
+                        name: `guild-${guildName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+                        type: ChannelType.GuildText,
+                        permissionOverwrites: [
+                            {
+                                id: discordGuild.roles.everyone.id,
+                                deny: [PermissionsBitField.Flags.ViewChannel],
+                            }
+                        ]
+                    });
+                    console.log(`[SYSTEM] Provisioned Discord Channel: ${channel.name}`);
+                }
+            });
+            processDiscordQueue();
+        }
+
+        res.json({ message: "Guild created successfully.", guild });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to create guild." });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`[SYSTEM] ARISE Backend Initialized on Port ${PORT}`);
+});
