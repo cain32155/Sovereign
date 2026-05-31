@@ -1323,6 +1323,19 @@ document.getElementById("btn-send-message")?.addEventListener("click", async () 
 // ==========================================
 // HOMEPAGE RENDERING LOGIC
 // ==========================================
+
+const SYSTEM_QUOTES = [
+    "If I am to be a tool, then I'll be a tool that thinks for itself.",
+    "The system uses me, and I use the system.",
+    "There is no limit to my growth.",
+    "A hunter must always be prepared.",
+    "I alone level up.",
+    "I will protect my family, even if it means fighting the world.",
+    "ARISE.",
+    "The only one who can save me is myself.",
+    "To survive, I must become stronger than the monsters."
+];
+
 window.renderHomepageElements = function() {
     // Render Daily Progress Ring
     const totalDailies = state.quests.filter(q => q.type === 'daily').length || 1; // avoid / 0
@@ -1335,6 +1348,13 @@ window.renderHomepageElements = function() {
     const ringContainer = document.querySelector(".daily-ring-container");
     if (ringContainer) {
         ringContainer.style.background = `conic-gradient(var(--color-primary) ${percentage}%, rgba(255,255,255,0.05) ${percentage}%)`;
+    }
+    
+    // Set random quote
+    const quoteEl = document.getElementById("system-quote-text");
+    if (quoteEl) {
+        const randomQuote = SYSTEM_QUOTES[Math.floor(Math.random() * SYSTEM_QUOTES.length)];
+        quoteEl.innerText = `"${randomQuote}"`;
     }
     
     // Add generic System Logs just for flavor based on recent levels

@@ -8,6 +8,24 @@
     <link rel="icon" href="assets/app_logo.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00E5FF">
+    <link rel="apple-touch-icon" href="assets/app_logo.png">
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- TensorFlow.js for Image Recognition -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
@@ -246,6 +264,12 @@
                                             <div style="width: 120px; height: 120px; background: var(--bg-panel); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-digital); font-size: 2rem; color: var(--color-primary); font-weight: bold; text-shadow: var(--glow-primary);" id="daily-progress-text">0%</div>
                                         </div>
                                         <p class="text-muted" style="font-size: 0.8rem;">Daily Directives Cleared</p>
+                                    </div>
+                                    
+                                    <!-- Motivation Quote -->
+                                    <div class="glass-card mb-4" style="border-left: 3px solid var(--color-primary); background: rgba(0, 229, 255, 0.05);">
+                                        <div style="font-family: var(--font-digital); color: var(--color-gold); font-size: 0.7rem; margin-bottom: 5px;">SYSTEM MESSAGE:</div>
+                                        <div id="system-quote-text" style="font-style: italic; color: var(--text-secondary); font-size: 0.9rem;">"There is no limit to my growth."</div>
                                     </div>
                                     
                                     <!-- System Log Terminal -->
