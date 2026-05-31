@@ -264,6 +264,9 @@
                                             <div style="width: 120px; height: 120px; background: var(--bg-panel); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-digital); font-size: 2rem; color: var(--color-primary); font-weight: bold; text-shadow: var(--glow-primary);" id="daily-progress-text">0%</div>
                                         </div>
                                         <p class="text-muted" style="font-size: 0.8rem;">Daily Directives Cleared</p>
+                                        <div class="mt-3">
+                                            <button class="btn-glow-blue btn-sm" onclick="document.querySelector('[data-target=\'tab-quests\']').click()">VIEW ALL DIRECTIVES</button>
+                                        </div>
                                     </div>
                                     
                                     <!-- Motivation Quote -->
@@ -454,6 +457,12 @@
                                     <input type="text" id="settings-avatar-url" class="input-dark mt-1" style="width: 100%;" placeholder="https://imgur.com/your-image.png">
                                 </div>
                                 <button id="btn-save-settings" class="btn-glow-blue mt-4">SAVE PROFILE UPDATES</button>
+                            </div>
+                            
+                            <div class="glass-card mt-4" style="border: 1px solid var(--color-accent); background: rgba(255, 0, 0, 0.05);">
+                                <h4 class="text-red">SYSTEM WIPE (FACTORY RESET)</h4>
+                                <p class="text-muted" style="font-size: 0.85rem;">This will completely delete your local progress (level, stats, gold, and quests) and force you to re-take the Awakening questions. This action is irreversible.</p>
+                                <button id="btn-factory-reset" class="btn-glow-red mt-2"><i class="fas fa-skull"></i> RESET ALL PROGRESS</button>
                             </div>
                         </div>
 

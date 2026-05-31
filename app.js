@@ -260,6 +260,15 @@ document.getElementById("btn-sign-out").addEventListener("click", () => {
     transitionView("dashboard-screen", "auth-screen");
 });
 
+document.getElementById("btn-factory-reset")?.addEventListener("click", () => {
+    if (confirm("CRITICAL WARNING: This will permanently delete all your stats, levels, gold, and quests. Do you wish to proceed?")) {
+        const email = currentUserEmail;
+        localStorage.removeItem("arise_state_" + email);
+        localStorage.removeItem("arise_current_user");
+        location.reload();
+    }
+});
+
 // Terminal Animation
 setTimeout(() => {
     document.getElementById("show-login-btn").classList.remove("hidden-init");
