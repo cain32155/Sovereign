@@ -18,6 +18,8 @@ model User {
   submissions      ProofSubmission[] 
   reviews          GuildReview[]     
 
+  otpCodes         OtpCode[]
+
   // Guild Relation
   guildId          String?
   guild            Guild?            @relation(fields: [guildId], references: [id])
@@ -97,4 +99,14 @@ model GuildReview {
   reviewer         User              @relation(fields: [reviewerId], references: [id])
 
   @@unique([submissionId, reviewerId]) 
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  user      User?    @relation(fields: [email], references: [email], onDelete: Cascade)
 }

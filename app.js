@@ -135,44 +135,74 @@ document.getElementById("show-login-btn").addEventListener("click", () => {
     document.getElementById("auth-form-container").classList.remove("hidden");
 });
 
-document.getElementById("auth-submit-btn").addEventListener("click", () => {
+document.getElementById("auth-request-otp-btn").addEventListener("click", async () => {
     const email = document.getElementById("auth-email").value.trim().toLowerCase();
-    const name = document.getElementById("auth-username").value.trim();
-    const pass = document.getElementById("auth-password").value.trim();
+    if (!email) return alert("System requires email.");
     
-    if (email.length < 5 || name.length < 2 || pass.length < 4) {
-        alert("System Warning: Invalid credentials. Enter a valid Gmail, Hunter Name, and Password.");
-        return;
-    }
+    document.getElementById("auth-request-otp-btn").innerText = "DISPATCHING...";
     
-    let users = JSON.parse(localStorage.getItem("arise_users") || "{}");
-    
-    if (users[email]) {
-        // Existing user
-        if (users[email] !== pass) {
-            alert("System Denial: Incorrect password for this Google account.");
-            return;
+    try {
+        const res = await fetch("https://sovereign-6irh.onrender.com/api/auth/request-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+        });
+        
+        if (res.ok) {
+            document.getElementById("auth-step-1").classList.add("hidden");
+            document.getElementById("auth-step-2").classList.remove("hidden");
+        } else {
+            alert("Failed to send OTP.");
+            document.getElementById("auth-request-otp-btn").innerText = "SEND AUTHORIZATION CODE";
         }
-        loadState(email);
-    } else {
-        // New user
-        users[email] = pass;
-        localStorage.setItem("arise_users", JSON.stringify(users));
-        loadState(email);
-        state.player.name = name;
+    } catch(err) {
+        alert("Server Offline.");
+        document.getElementById("auth-request-otp-btn").innerText = "SEND AUTHORIZATION CODE";
     }
+});
+
+document.getElementById("auth-verify-otp-btn").addEventListener("click", async () => {
+    const email = document.getElementById("auth-email").value.trim().toLowerCase();
+    const code = document.getElementById("auth-otp").value.trim();
+    if (!code) return alert("Code required.");
     
-    localStorage.setItem("arise_current_user", email);
-    state.isLoggedIn = true;
-    saveState();
+    document.getElementById("auth-verify-otp-btn").innerText = "VERIFYING...";
     
-    if (state.isOnboardingComplete) {
-        transitionView("auth-screen", "dashboard-screen");
-        syncDashboard();
-        applyAura();
-    } else {
-        transitionView("auth-screen", "onboarding-screen");
-        startOnboarding();
+    try {
+        const res = await fetch("https://sovereign-6irh.onrender.com/api/auth/verify-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, code })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok && data.token) {
+            localStorage.setItem("arise_token", data.token);
+            
+            // Setup User Session
+            loadState(email);
+            state.player.name = data.user.hunterName;
+            state.isLoggedIn = true;
+            saveState();
+
+            document.getElementById("auth-form-container").classList.add("hidden");
+            if (state.isOnboardingComplete) {
+                transitionView("auth-screen", "dashboard-screen");
+                syncDashboard();
+                applyAura();
+                updateDailyTimer();
+            } else {
+                transitionView("auth-screen", "onboarding-screen");
+                startOnboarding();
+            }
+        } else {
+            alert(data.error || "Invalid code.");
+            document.getElementById("auth-verify-otp-btn").innerText = "VERIFY & AWAKEN";
+        }
+    } catch(err) {
+        alert("Verification failed.");
+        document.getElementById("auth-verify-otp-btn").innerText = "VERIFY & AWAKEN";
     }
 });
 
@@ -745,39 +775,59 @@ document.getElementById("btn-engage-boss").addEventListener("click", () => {
     syncDashboard();
 });
 
-// Dungeon Gate
-let gateInterval;
+// Digital Detox Protocol (The Dungeon Gate)
+let detoxInterval;
+let isDetoxActive = false;
+
 document.getElementById("btn-enter-gate").addEventListener("click", () => {
     const mins = parseInt(document.getElementById("gate-duration").value) || 25;
     let secs = mins * 60;
     
-    document.getElementById("dungeon-gate-overlay").classList.remove("hidden");
+    isDetoxActive = true;
+    document.getElementById("detox-overlay").classList.remove("hidden");
     
-    gateInterval = setInterval(() => {
+    detoxInterval = setInterval(() => {
         secs--;
         let m = Math.floor(secs / 60).toString().padStart(2, '0');
         let s = (secs % 60).toString().padStart(2, '0');
-        document.getElementById("gate-timer-display").textContent = `${m}:${s}`;
+        document.getElementById("detox-timer").textContent = `${m}:${s}`;
         
         if (secs <= 0) {
-            clearInterval(gateInterval);
-            document.getElementById("dungeon-gate-overlay").classList.add("hidden");
+            clearInterval(detoxInterval);
+            isDetoxActive = false;
+            document.getElementById("detox-overlay").classList.add("hidden");
             state.player.gold += mins * 2;
             state.player.xp += mins * 3;
-            alert(`Gate Cleared! Earned ${mins*2}G and ${mins*3}XP.`);
+            alert(`Detox Cleared! Earned ${mins*2}G and ${mins*3}XP.`);
             saveState();
             syncDashboard();
         }
     }, 1000);
 });
 
-document.getElementById("btn-abort-gate").addEventListener("click", () => {
-    clearInterval(gateInterval);
-    document.getElementById("dungeon-gate-overlay").classList.add("hidden");
+document.getElementById("detox-deactivate-btn").addEventListener("click", () => {
+    clearInterval(detoxInterval);
+    isDetoxActive = false;
+    document.getElementById("detox-overlay").classList.add("hidden");
     state.player.hp -= 30; // Massive damage
-    alert("Gate Aborted. HP Decimated.");
+    alert("System Penalty: Detox Aborted. HP Decimated.");
     saveState();
     syncDashboard();
+});
+
+// Detox Cheat Detection (Page Visibility)
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && isDetoxActive) {
+        // The user minimized the app or switched tabs!
+        clearInterval(detoxInterval);
+        isDetoxActive = false;
+        document.getElementById("detox-overlay").classList.add("hidden");
+        state.player.hp -= 50; 
+        state.player.gold = 0; // Extremely severe penalty
+        alert("SYSTEM VIOLATION DETECTED: You left the Detox Zone. HP Slashed by 50. All Gold Forfeited.");
+        saveState();
+        syncDashboard();
+    }
 });
 
 // Stealth Mode

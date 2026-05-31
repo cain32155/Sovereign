@@ -13,6 +13,80 @@ app.use(express.static(__dirname)); // Serve the ARISE frontend files
 const { Client, GatewayIntentBits, ChannelType, PermissionsBitField } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
+const { Resend } = require('resend');
+const jwt = require('jsonwebtoken');
+const resend = new Resend(process.env.RESEND_API_KEY);
+const JWT_SECRET = process.env.JWT_SECRET || 'sov_jwt_secret_994910_random_secure_key';
+
+// ==========================================
+// AUTHENTICATION SYSTEM (OTP)
+// ==========================================
+app.post('/api/auth/request-otp', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email required" });
+
+    // Generate 6 digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+
+    try {
+        // Ensure user exists
+        let user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            user = await prisma.user.create({
+                data: {
+                    email,
+                    hunterName: `Hunter_${Math.floor(Math.random()*10000)}`
+                }
+            });
+        }
+
+        // Save OTP
+        await prisma.otpCode.create({
+            data: { email, code, expiresAt }
+        });
+
+        // Send Email
+        await resend.emails.send({
+            from: 'Sovereign System <onboarding@resend.dev>',
+            to: email,
+            subject: 'SYSTEM OVERRIDE: Verification Required',
+            html: `<h2>SOVEREIGN AUTHENTICATION PROTOCOL</h2><p>Your one-time authorization code is: <strong>${code}</strong></p><p>This code will self-destruct in 5 minutes.</p>`
+        });
+
+        res.json({ success: true, message: "Code dispatched." });
+    } catch (err) {
+        console.error("OTP Request Error:", err);
+        res.status(500).json({ error: "Failed to dispatch code." });
+    }
+});
+
+app.post('/api/auth/verify-otp', async (req, res) => {
+    const { email, code } = req.body;
+    try {
+        const otpRecord = await prisma.otpCode.findFirst({
+            where: { email, code, expiresAt: { gt: new Date() } },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        if (!otpRecord) return res.status(401).json({ error: "Invalid or expired code." });
+
+        // Generate JWT
+        const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '7d' });
+        
+        // Fetch full user profile
+        const user = await prisma.user.findUnique({ where: { email } });
+
+        // Clean up OTPs
+        await prisma.otpCode.deleteMany({ where: { email } });
+
+        res.json({ success: true, token, user });
+    } catch (err) {
+        console.error("OTP Verify Error:", err);
+        res.status(500).json({ error: "Verification failed." });
+    }
+});
+
 // ==========================================
 // DISCORD BOT & RATE-LIMIT QUEUE
 // ==========================================
