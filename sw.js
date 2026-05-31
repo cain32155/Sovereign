@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arise-cache-v1';
+const CACHE_NAME = 'arise-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,29 +8,18 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting(); // Force the waiting service worker to become the active service worker.
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
-});
-
 self.addEventListener('activate', event => {
+  event.waitUntil(self.clients.claim()); // Claim clients immediately
+  
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -41,6 +30,20 @@ self.addEventListener('activate', event => {
           }
         })
       );
+    })
+  );
+});
+
+// Network-First strategy
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    fetch(event.request).then(response => {
+      return caches.open(CACHE_NAME).then(cache => {
+        cache.put(event.request, response.clone());
+        return response;
+      });
+    }).catch(() => {
+      return caches.match(event.request);
     })
   );
 });
