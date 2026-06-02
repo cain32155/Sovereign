@@ -719,6 +719,31 @@ window.submitArbitrationVote = async function(submissionId, vote) {
     }
 }
 
+// Settings Logout Button (Duplicates Sidebar functionality)
+document.getElementById("btn-sign-out-settings")?.addEventListener("click", () => {
+    document.getElementById("btn-sign-out")?.click();
+});
+
+// PWA Installation Logic
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+document.getElementById("btn-install-pwa")?.addEventListener("click", async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+        }
+        deferredPrompt = null;
+    } else {
+        alert("PWA installation is not supported by your browser or the app is already installed.");
+    }
+});
+
 document.getElementById("btn-refresh-arbitration")?.addEventListener("click", () => {
     renderArbitrationQueue();
 });
