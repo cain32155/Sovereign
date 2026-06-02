@@ -253,9 +253,12 @@ document.getElementById("btn-sign-out").addEventListener("click", () => {
     currentUserEmail = null;
     
     // Reset login UI
-    document.getElementById("auth-form-container").classList.add("hidden");
-    document.getElementById("show-login-btn").classList.remove("hidden");
-    document.getElementById("auth-password").value = "";
+    const authForm = document.getElementById("auth-form-container");
+    if(authForm) authForm.classList.add("hidden");
+    const showLoginBtn = document.getElementById("show-login-btn");
+    if(showLoginBtn) showLoginBtn.classList.remove("hidden");
+    const authPass = document.getElementById("auth-password");
+    if(authPass) authPass.value = "";
     
     transitionView("dashboard-screen", "auth-screen");
 });
@@ -411,14 +414,20 @@ function syncDashboard() {
     }
     
     // Bars
-    document.getElementById("hp-value").textContent = `${state.player.hp} / ${state.player.maxHp}`;
-    document.getElementById("hp-progress-bar").style.width = `${(state.player.hp / state.player.maxHp)*100}%`;
+    const hpValue = document.getElementById("hp-value");
+    if(hpValue) hpValue.textContent = `${state.player.hp} / ${state.player.maxHp}`;
+    const hpBar = document.getElementById("hp-progress-bar");
+    if(hpBar) hpBar.style.width = `${(state.player.hp / state.player.maxHp)*100}%`;
     
-    document.getElementById("fatigue-value").textContent = `${state.player.fatigue} / 100`;
-    document.getElementById("fatigue-progress-bar").style.width = `${state.player.fatigue}%`;
+    const fatValue = document.getElementById("fatigue-value");
+    if(fatValue) fatValue.textContent = `${state.player.fatigue} / 100`;
+    const fatBar = document.getElementById("fatigue-progress-bar");
+    if(fatBar) fatBar.style.width = `${state.player.fatigue}%`;
     
-    document.getElementById("xp-text").textContent = `${state.player.xp} / ${state.player.xpNeeded}`;
-    document.getElementById("xp-progress-bar").style.width = `${(state.player.xp / state.player.xpNeeded)*100}%`;
+    const xpText = document.getElementById("xp-text");
+    if(xpText) xpText.textContent = `${state.player.xp} / ${state.player.xpNeeded}`;
+    const xpBar = document.getElementById("xp-progress-bar");
+    if(xpBar) xpBar.style.width = `${(state.player.xp / state.player.xpNeeded)*100}%`;
     document.getElementById("hud-level-tag").textContent = `LVL ${state.player.level}`;
     
     document.getElementById("gold-balance").textContent = state.player.gold;
@@ -1129,9 +1138,12 @@ document.getElementById("btn-form-guild")?.addEventListener("click", async () =>
             if(statusDiv) statusDiv.classList.add("hidden");
             alert("SYSTEM ALERT: Guild formed! Discord Channel provisioned successfully.");
             
-            document.getElementById("current-guild-display").textContent = data.guild?.name || "Guild";
-            document.getElementById("current-guild-display").classList.remove("text-muted");
-            document.getElementById("current-guild-display").classList.add("text-gold");
+            const guildDisplay = document.getElementById("current-guild-display");
+            if (guildDisplay) {
+                guildDisplay.textContent = data.guild?.name || "Guild";
+                guildDisplay.classList.remove("text-muted");
+                guildDisplay.classList.add("text-gold");
+            }
             
             const btn = document.getElementById("btn-connect-discord");
             if(btn) {
