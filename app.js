@@ -540,7 +540,10 @@ async function refreshFriendsList() {
                 return;
             }
             
-            data.friends.forEach(f => {
+            const pendingRequests = data.friends.filter(f => f.status === 'PENDING');
+            const activeFriends = data.friends.filter(f => f.status === 'ACCEPTED');
+            
+            const renderFriendHTML = (f) => {
                 const isSender = f.userId === data.userId;
                 const friendUser = isSender ? f.friend : f.user;
                 
@@ -551,7 +554,7 @@ async function refreshFriendsList() {
                         <img src="${friendUser.profileUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(friendUser.hunterName)}`}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
                         <div>
                             <div style="font-weight: bold; font-size: 0.9rem; color: var(--color-secondary);">${friendUser.hunterName}</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted);">${f.status === 'PENDING' ? 'Pending Request' : friendUser.rank + '-Rank'}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">${f.status === 'PENDING' ? (isSender ? 'Awaiting Accept...' : 'Pending Request') : friendUser.rank + '-Rank'}</div>
                         </div>
                     </div>
                 `;
@@ -561,13 +564,34 @@ async function refreshFriendsList() {
                 } else if (!isSender) {
                     const btn = document.createElement("button");
                     btn.className = "btn-glow-blue btn-xs";
-                    btn.innerText = "ACCEPT";
+                    btn.innerHTML = `<i class="fas fa-check"></i>`;
+                    btn.title = "Accept Request";
                     btn.onclick = (e) => { e.stopPropagation(); addFriend(friendUser.hunterName); };
+                    div.appendChild(btn);
+                } else {
+                    const btn = document.createElement("button");
+                    btn.className = "btn-outline-blue btn-xs";
+                    btn.innerHTML = `<i class="fas fa-clock"></i>`;
+                    btn.disabled = true;
                     div.appendChild(btn);
                 }
                 
                 listContainer.appendChild(div);
-            });
+            };
+
+            if (pendingRequests.length > 0) {
+                const header = document.createElement("div");
+                header.innerHTML = `<div style="font-size: 0.75rem; color: var(--color-primary); letter-spacing: 1px; margin: 10px 0 5px 0; border-bottom: 1px solid rgba(0, 229, 255, 0.2); padding-bottom: 3px;">PENDING REQUESTS</div>`;
+                listContainer.appendChild(header);
+                pendingRequests.forEach(renderFriendHTML);
+            }
+            
+            if (activeFriends.length > 0) {
+                const header = document.createElement("div");
+                header.innerHTML = `<div style="font-size: 0.75rem; color: var(--color-secondary); letter-spacing: 1px; margin: 10px 0 5px 0; border-bottom: 1px solid rgba(187, 134, 252, 0.2); padding-bottom: 3px;">ACTIVE CONTACTS</div>`;
+                listContainer.appendChild(header);
+                activeFriends.forEach(renderFriendHTML);
+            }
         }
     } catch (e) {
         listContainer.innerHTML = `<div class="text-red text-center mt-4">Failed to connect to Network.</div>`;
