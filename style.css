@@ -254,6 +254,8 @@ button {
     padding: 20px;
     background: var(--bg-panel);
     border-top: 1px solid var(--border-glass);
+    max-height: 45vh;
+    overflow-y: auto;
 }
 .chat-opt-btn {
     background: rgba(255,255,255,0.05);
