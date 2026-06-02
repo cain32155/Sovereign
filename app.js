@@ -390,6 +390,7 @@ document.getElementById("enter-system-btn").addEventListener("click", () => {
     document.getElementById("awakening-ceremony").classList.add("hidden");
     transitionView("onboarding-screen", "dashboard-screen");
     syncDashboard();
+    if(typeof updateDailyTimer === 'function') updateDailyTimer();
 });
 
 // ==========================================
