@@ -548,7 +548,7 @@ async function refreshFriendsList() {
                 div.style = "display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 4px; border-left: 2px solid var(--color-primary); margin-bottom: 5px; cursor: pointer;";
                 div.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${friendUser.profileUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${friendUser.hunterName}`}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+                        <img src="${friendUser.profileUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(friendUser.hunterName)}`}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
                         <div>
                             <div style="font-weight: bold; font-size: 0.9rem; color: var(--color-secondary);">${friendUser.hunterName}</div>
                             <div style="font-size: 0.7rem; color: var(--text-muted);">${f.status === 'PENDING' ? 'Pending Request' : friendUser.rank + '-Rank'}</div>
