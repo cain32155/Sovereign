@@ -1350,19 +1350,7 @@ document.getElementById("btn-scan-gates")?.addEventListener("click", () => {
     initGateScanner();
 });
 
-window.submitArbitrationVote = async function(submissionId, vote) {
-    try {
-        await fetch('https://sovereign-6irh.onrender.com/api/reviews/vote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ submissionId, reviewerId: state.player.name || "TestUser", vote })
-        });
-        alert(`SYSTEM ALERT: Verification ${vote}. +5 Mana Crystals awarded.`);
-        renderNetworkTab(); // reload queue to get next item
-    } catch (e) {
-        alert('SYSTEM ERROR: Failed to submit vote.');
-    }
-}
+
 
 // ==========================================
 // DAILY TIMER LOGIC
