@@ -1037,52 +1037,57 @@ document.getElementById("btn-engage-boss").addEventListener("click", () => {
 let detoxInterval;
 let isDetoxActive = false;
 
+let gateInterval;
+
 document.getElementById("btn-enter-gate").addEventListener("click", () => {
     const mins = parseInt(document.getElementById("gate-duration").value) || 25;
     let secs = mins * 60;
     
     isDetoxActive = true;
-    document.getElementById("detox-overlay").classList.remove("hidden");
+    document.getElementById("dungeon-gate-overlay").classList.remove("hidden");
+    SystemAudio.playClick();
     
-    detoxInterval = setInterval(() => {
+    gateInterval = setInterval(() => {
         secs--;
         let m = Math.floor(secs / 60).toString().padStart(2, '0');
         let s = (secs % 60).toString().padStart(2, '0');
-        document.getElementById("detox-timer").textContent = `${m}:${s}`;
+        document.getElementById("gate-timer-display").textContent = `${m}:${s}`;
         
         if (secs <= 0) {
-            clearInterval(detoxInterval);
+            clearInterval(gateInterval);
             isDetoxActive = false;
-            document.getElementById("detox-overlay").classList.add("hidden");
+            document.getElementById("dungeon-gate-overlay").classList.add("hidden");
             state.player.gold += mins * 2;
             state.player.xp += mins * 3;
-            alert(`Detox Cleared! Earned ${mins*2}G and ${mins*3}XP.`);
+            SystemAudio.playSuccess();
+            alert(`Gate Cleared! Earned ${mins*2}G and ${mins*3}XP.`);
             saveState();
             syncDashboard();
         }
     }, 1000);
 });
 
-document.getElementById("detox-deactivate-btn").addEventListener("click", () => {
-    clearInterval(detoxInterval);
+document.getElementById("btn-abort-gate")?.addEventListener("click", () => {
+    clearInterval(gateInterval);
     isDetoxActive = false;
-    document.getElementById("detox-overlay").classList.add("hidden");
+    document.getElementById("dungeon-gate-overlay").classList.add("hidden");
     state.player.hp -= 30; // Massive damage
-    alert("System Penalty: Detox Aborted. HP Decimated.");
+    SystemAudio.playError();
+    alert("System Penalty: Gate Aborted. HP Decimated.");
     saveState();
     syncDashboard();
 });
 
-// Detox Cheat Detection (Page Visibility)
+// Detox/Gate Cheat Detection (Page Visibility)
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden" && isDetoxActive) {
         // The user minimized the app or switched tabs!
-        clearInterval(detoxInterval);
+        clearInterval(gateInterval);
         isDetoxActive = false;
-        document.getElementById("detox-overlay").classList.add("hidden");
-        state.player.hp -= 50; 
-        state.player.gold = 0; // Extremely severe penalty
-        alert("SYSTEM VIOLATION DETECTED: You left the Detox Zone. HP Slashed by 50. All Gold Forfeited.");
+        document.getElementById("dungeon-gate-overlay").classList.add("hidden");
+        state.player.hp = 1; // Punish severely for exiting the app during focus mode
+        SystemAudio.playError();
+        alert("SYSTEM PENALTY: You abandoned the gate. HP reduced to 1.");
         saveState();
         syncDashboard();
     }
