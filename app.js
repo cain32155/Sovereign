@@ -70,6 +70,63 @@ const DEFAULT_STATE = {
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
 let currentUserEmail = null;
 
+// ==========================================
+// SYSTEM AUDIO ENGINE
+// ==========================================
+const SystemAudio = {
+    ctx: null,
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+    playTone(freq, type, duration, vol) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+    playClick() {
+        this.init();
+        this.playTone(600, 'sine', 0.1, 0.1);
+    },
+    playSuccess() {
+        this.init();
+        this.playTone(440, 'square', 0.1, 0.1);
+        setTimeout(() => this.playTone(554, 'square', 0.1, 0.1), 100);
+        setTimeout(() => this.playTone(659, 'square', 0.3, 0.1), 200);
+    },
+    playError() {
+        this.init();
+        this.playTone(200, 'sawtooth', 0.2, 0.1);
+        setTimeout(() => this.playTone(150, 'sawtooth', 0.3, 0.1), 150);
+    }
+};
+
+document.addEventListener('click', (e) => {
+    // Initialize audio context on first user interaction
+    if(SystemAudio.ctx && SystemAudio.ctx.state === 'suspended') SystemAudio.ctx.resume();
+    
+    // Play UI click sound for buttons
+    if(e.target.closest("button") || e.target.closest(".tab-btn") || e.target.closest(".chat-opt-btn")) {
+        SystemAudio.playClick();
+    }
+});
+
+
 // Local Storage
 function saveState() {
     if (!currentUserEmail) return;
@@ -453,6 +510,7 @@ function syncDashboard() {
     if (typeof renderBuffs === 'function') renderBuffs();
     if (typeof renderShop === 'function') renderShop();
     if (typeof renderHomepageElements === 'function') renderHomepageElements();
+    if (typeof renderArbitrationQueue === 'function') renderArbitrationQueue();
     
     document.getElementById("mana-crystals-count").textContent = state.inventory.manaCrystals;
 }
@@ -596,8 +654,75 @@ function applyAura() {
 }
 
 // ==========================================
-// QUESTS & VERIFICATION
+// QUESTS & VERIFICATION & ARBITRATION
 // ==========================================
+
+function renderArbitrationQueue() {
+    const container = document.getElementById("arbitration-container");
+    if(!container) return;
+    
+    container.innerHTML = `<div class="text-center text-muted"><span class="pulse">SYNCING WITH ARBITRATION SERVER...</span></div>`;
+    
+    const reviewerId = encodeURIComponent(state.player.name || "TestUser");
+    fetch(`https://sovereign-6irh.onrender.com/api/reviews/queue?reviewerId=${reviewerId}`)
+        .then(res => {
+            if(!res.ok) throw new Error("Server Error");
+            return res.json();
+        })
+        .then(data => {
+            if(!data.queue || data.queue.length === 0) {
+                container.innerHTML = `<div class="text-center text-muted"><i class="fas fa-check-circle text-gold" style="font-size: 2rem;"></i><br><br>Queue is clear. No pending verifications.</div>`;
+                return;
+            }
+            const sub = data.queue[0];
+            container.innerHTML = `
+                <div class="arbitration-card p-2" id="arbi-card-${sub.id}" style="border: 1px solid var(--color-gold); background: rgba(255, 215, 0, 0.05); border-radius: 8px;">
+                    <h4 class="text-gold">VERIFICATION REQUIRED</h4>
+                    <p class="text-muted" style="font-size:0.85rem">Subject: ${sub.userId}<br>Quest: ${sub.questTitle}</p>
+                    <div style="width: 100%; height: 200px; margin: 10px 0; overflow: hidden; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                        <img src="${sub.imageUrl}" alt="Proof Image" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-glow-blue btn-sm" style="flex: 1;" onclick="submitArbitrationVote('${sub.id}', 'APPROVED')"><i class="fas fa-check"></i> APPROVE</button>
+                        <button class="btn-outline-red btn-sm" style="flex: 1;" onclick="submitArbitrationVote('${sub.id}', 'REJECTED')"><i class="fas fa-times"></i> REJECT</button>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(err => {
+            container.innerHTML = `<div class="text-center text-red">SYSTEM ERROR: Failed to sync with Arbitration Server.</div>`;
+        });
+}
+
+window.submitArbitrationVote = async function(submissionId, vote) {
+    try {
+        await fetch('https://sovereign-6irh.onrender.com/api/reviews/vote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ submissionId, reviewerId: state.player.name || "TestUser", vote })
+        });
+        
+        SystemAudio.playSuccess();
+        alert(`SYSTEM ALERT: Verification ${vote}. +5 Mana Crystals awarded.`);
+        
+        // Award crystals and update UI
+        state.inventory.manaCrystals += 5;
+        saveState();
+        const mcDisplay = document.getElementById("mana-crystals-count");
+        if(mcDisplay) mcDisplay.textContent = state.inventory.manaCrystals;
+        
+        // Load next in queue
+        renderArbitrationQueue();
+    } catch (e) {
+        SystemAudio.playError();
+        alert('SYSTEM ERROR: Failed to submit vote.');
+    }
+}
+
+document.getElementById("btn-refresh-arbitration")?.addEventListener("click", () => {
+    renderArbitrationQueue();
+});
+
 function generateDailies() {
     const p = state.player.profile || { arch: "", env: "", inv: "", weak: "" };
     
@@ -818,6 +943,8 @@ function processQuestCompletion(q) {
     state.player.xp += q.xp;
     state.player.gold += q.gold;
     
+    SystemAudio.playSuccess();
+    
     // Apply stat rewards if applicable
     if (q.statReward) {
         state.player.stats[q.statReward.stat] += q.statReward.amt;
@@ -830,6 +957,7 @@ function processQuestCompletion(q) {
         state.player.xp -= state.player.xpNeeded;
         state.player.xpNeeded = Math.floor(state.player.xpNeeded * 1.5);
         state.player.statPoints += 5;
+        setTimeout(() => SystemAudio.playSuccess(), 500); // Additional sound for level up
         alert(`LEVEL UP! You are now Level ${state.player.level}. +5 Stat Points.`);
     }
     
