@@ -48,7 +48,7 @@ app.post('/api/auth/request-otp', async (req, res) => {
 
         // Send Email
         await resend.emails.send({
-            from: 'Sovereign System <onboarding@resend.dev>',
+            from: 'Sovereign System <auth@sovereignapp.shop>',
             to: email,
             subject: 'SYSTEM OVERRIDE: Verification Required',
             html: `<h2>SOVEREIGN AUTHENTICATION PROTOCOL</h2><p>Your one-time authorization code is: <strong>${code}</strong></p><p>This code will self-destruct in 5 minutes.</p>`
