@@ -64,6 +64,7 @@ model Guild {
   description      String?
   inviteCode       String            @unique 
   isPublic         Boolean           @default(false)
+  leaderId         String
   
   members          User[]
   createdAt        DateTime          @default(now())

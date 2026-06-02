@@ -355,33 +355,25 @@ app.post('/api/reviews/vote', async (req, res) => {
 // GUILD API (WITH DISCORD INTEGRATION)
 // ==========================================
 app.post('/api/guild/create', async (req, res) => {
-    const { userId, guildName } = req.body;
-    if (!userId || !guildName) return res.status(400).json({ error: "Missing parameters" });
+    const { email, guildName } = req.body;
+    if (!email || !guildName) return res.status(400).json({ error: "Missing parameters" });
     
     try {
-        // Find existing user or mock if testing
-        let user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) {
-            user = await prisma.user.create({ 
-                data: { 
-                    id: userId, 
-                    hunterName: userId,
-                    email: userId + "@mock.com",
-                    trustScore: 1.0 
-                } 
-            });
-        }
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        if (user.guildId) return res.status(400).json({ error: "You are already in a Guild." });
 
         const guild = await prisma.guild.create({
             data: {
                 name: guildName,
-                leaderId: userId,
+                leaderId: user.id,
                 inviteCode: "G_" + Math.random().toString(36).substring(2, 8).toUpperCase()
             }
         });
 
         await prisma.user.update({
-            where: { id: userId },
+            where: { email },
             data: { guildId: guild.id }
         });
 
@@ -406,10 +398,90 @@ app.post('/api/guild/create', async (req, res) => {
             processDiscordQueue();
         }
 
-        res.json({ message: "Guild created successfully.", guild });
+        res.json({ success: true, message: "Guild created successfully.", guild });
+    } catch (err) {
+        console.error("Create Guild Error:", err);
+        res.status(500).json({ error: "Failed to create guild. Name might be taken." });
+    }
+});
+
+app.get('/api/guild/info', async (req, res) => {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ error: "Email required" });
+    try {
+        const user = await prisma.user.findUnique({ 
+            where: { email },
+            include: { guild: { include: { members: true } } }
+        });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        if (!user.guild) {
+            return res.json({ success: true, inGuild: false });
+        }
+
+        const leader = user.guild.members.find(m => m.id === user.guild.leaderId);
+
+        res.json({ 
+            success: true, 
+            inGuild: true, 
+            guild: user.guild,
+            isLeader: user.id === user.guild.leaderId,
+            leaderName: leader ? leader.hunterName : "Unknown"
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Failed to create guild." });
+        res.status(500).json({ error: "Failed to load guild info" });
+    }
+});
+
+app.post('/api/guild/join', async (req, res) => {
+    const { email, inviteCode } = req.body;
+    if (!email || !inviteCode) return res.status(400).json({ error: "Missing parameters" });
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        if (user.guildId) return res.status(400).json({ error: "You are already in a Guild." });
+
+        const guild = await prisma.guild.findUnique({ where: { inviteCode } });
+        if (!guild) return res.status(404).json({ error: "Invalid Invite Code." });
+
+        await prisma.user.update({
+            where: { email },
+            data: { guildId: guild.id }
+        });
+
+        res.json({ success: true, message: `Successfully joined ${guild.name}!` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to join guild." });
+    }
+});
+
+app.post('/api/guild/leave', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email required" });
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user || !user.guildId) return res.status(400).json({ error: "You are not in a guild." });
+
+        const guild = await prisma.guild.findUnique({ where: { id: user.guildId } });
+
+        if (guild && guild.leaderId === user.id) {
+            return res.status(400).json({ error: "Guild Master cannot leave without disbanding the guild. (Disband feature pending)" });
+        }
+
+        await prisma.user.update({
+            where: { email },
+            data: { guildId: null }
+        });
+
+        res.json({ success: true, message: "Successfully left the guild." });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to leave guild." });
     }
 });
 

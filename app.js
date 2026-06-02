@@ -511,6 +511,7 @@ function syncDashboard() {
     if (typeof renderShop === 'function') renderShop();
     if (typeof renderHomepageElements === 'function') renderHomepageElements();
     if (typeof renderArbitrationQueue === 'function') renderArbitrationQueue();
+    if (typeof renderGuildUI === 'function') renderGuildUI();
     
     document.getElementById("mana-crystals-count").textContent = state.inventory.manaCrystals;
 }
@@ -1304,48 +1305,7 @@ document.getElementById("btn-complete-mindscape")?.addEventListener("click", () 
 });
 
 // Network Tab Listeners
-document.getElementById("btn-form-guild")?.addEventListener("click", async () => {
-    const statusDiv = document.getElementById("discord-queue-status");
-    if(statusDiv) statusDiv.classList.remove("hidden");
-    
-    try {
-        const res = await fetch("https://sovereign-6irh.onrender.com/api/guild/create", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: state.player.name || "TestUser", guildName: (state.player.name || "TestUser") + "'s Guild" })
-        });
-        const data = await res.json();
-        
-        // Simulate backend queue delay for Discord API provisioning in the UI
-        setTimeout(() => {
-            if(statusDiv) statusDiv.classList.add("hidden");
-            alert("SYSTEM ALERT: Guild formed! Discord Channel provisioned successfully.");
-            
-            const guildDisplay = document.getElementById("current-guild-display");
-            if (guildDisplay) {
-                guildDisplay.textContent = data.guild?.name || "Guild";
-                guildDisplay.classList.remove("text-muted");
-                guildDisplay.classList.add("text-gold");
-            }
-            
-            const btn = document.getElementById("btn-connect-discord");
-            if(btn) {
-                btn.innerHTML = `<i class="fab fa-discord"></i> ENTER DISCORD SERVER`;
-                // Open exactly to the SOVEREIGN Master Server!
-                btn.onclick = () => window.open("https://discord.com/channels/1510574556513828884", "_blank");
-            }
-        }, 3000);
-    } catch (e) {
-        if(statusDiv) statusDiv.classList.add("hidden");
-        alert("SYSTEM ERROR: Backend is offline. Is Node server running?");
-    }
-});
-
-document.getElementById("btn-connect-discord")?.addEventListener("click", (e) => {
-    if(!e.target.onclick) {
-        alert("SYSTEM ALERT: You must form or join a Guild first.");
-    }
-});
+// OLD GUILD LOGIC REMOVED
 
 // ==========================================
 // NEW UI LISTENERS & GATE LOGIC
