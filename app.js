@@ -1,5 +1,5 @@
 /* ==========================================
-   ARISE: THE SYSTEM CORE ENGINE
+   SOVEREIGN: THE SYSTEM CORE ENGINE
    ========================================== */
 
 const DEFAULT_STATE = {
@@ -438,7 +438,7 @@ function processAwakening() {
     
     overlay.classList.remove("hidden");
     setTimeout(() => {
-        card.innerHTML = `<h3>CLASS EVALUATED</h3><h1 class="text-purple">${state.player.class.toUpperCase()}</h1><p>Stats calibrated. Arise.</p>`;
+        card.innerHTML = `<h3>CLASS EVALUATED</h3><h1 class="text-purple">${state.player.class.toUpperCase()}</h1><p>Stats calibrated. Sovereign.</p>`;
         setTimeout(() => btn.classList.remove("hidden"), 1000);
     }, 1500);
 }
@@ -1307,7 +1307,7 @@ document.getElementById("btn-form-guild")?.addEventListener("click", async () =>
             const btn = document.getElementById("btn-connect-discord");
             if(btn) {
                 btn.innerHTML = `<i class="fab fa-discord"></i> ENTER DISCORD SERVER`;
-                // Open exactly to the ARISE Master Server!
+                // Open exactly to the SOVEREIGN Master Server!
                 btn.onclick = () => window.open("https://discord.com/channels/1510574556513828884", "_blank");
             }
         }, 3000);
@@ -1499,7 +1499,7 @@ const SYSTEM_QUOTES = [
     "A hunter must always be prepared.",
     "I alone level up.",
     "I will protect my family, even if it means fighting the world.",
-    "ARISE.",
+    "SOVEREIGN.",
     "The only one who can save me is myself.",
     "To survive, I must become stronger than the monsters."
 ];

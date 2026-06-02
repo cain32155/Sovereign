@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arise-cache-v2';
+const CACHE_NAME = 'sovereign-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
